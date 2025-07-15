@@ -9,6 +9,11 @@ interface CalendarProps {
   events: Event[]
   onDateClick: (date: Date) => void
   onEventClick: (event: Event) => void
+  showPersonalCalendar: boolean
+  showCompanyCalendar: boolean
+  onTogglePersonalCalendar: () => void
+  onToggleCompanyCalendar: () => void
+  userHasCompany: boolean
 }
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -22,10 +27,20 @@ const EVENT_TYPE_COLORS = {
   deadline: 'bg-red-500',
   holiday: 'bg-green-500',
   personal: 'bg-purple-500',
+  company: 'bg-orange-500',
   other: 'bg-gray-500'
 }
 
-export default function Calendar({ events, onDateClick, onEventClick }: CalendarProps) {
+export default function Calendar({ 
+  events, 
+  onDateClick, 
+  onEventClick, 
+  showPersonalCalendar, 
+  showCompanyCalendar, 
+  onTogglePersonalCalendar, 
+  onToggleCompanyCalendar,
+  userHasCompany 
+}: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
 
   const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
@@ -45,6 +60,10 @@ export default function Calendar({ events, onDateClick, onEventClick }: Calendar
 
   const getEventsForDate = (date: Date) => {
     return events.filter(event => {
+      // 캘린더 토글 상태에 따라 필터링
+      if (event.visibility === 'personal' && !showPersonalCalendar) return false
+      if (event.visibility === 'company' && !showCompanyCalendar) return false
+      
       const eventStart = new Date(event.start_date)
       const eventEnd = new Date(event.end_date)
       const checkDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
@@ -93,13 +112,47 @@ export default function Calendar({ events, onDateClick, onEventClick }: Calendar
             오늘
           </Button>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigateMonth('prev')}>
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => navigateMonth('next')}>
-            <ChevronRight className="w-4 h-4" />
-          </Button>
+        
+        {/* Calendar Toggle Controls */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={showPersonalCalendar}
+                onChange={onTogglePersonalCalendar}
+                className="rounded border-gray-300"
+              />
+              <span className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-purple-500 rounded"></div>
+                개인 캘린더
+              </span>
+            </label>
+            
+            {userHasCompany && (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={showCompanyCalendar}
+                  onChange={onToggleCompanyCalendar}
+                  className="rounded border-gray-300"
+                />
+                <span className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-orange-500 rounded"></div>
+                  회사 캘린더
+                </span>
+              </label>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigateMonth('prev')}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigateMonth('next')}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </div>
 

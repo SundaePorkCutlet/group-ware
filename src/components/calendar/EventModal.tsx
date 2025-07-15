@@ -31,17 +31,33 @@ export default function EventModal({
   const [endDate, setEndDate] = useState('')
   const [endTime, setEndTime] = useState('')
   const [location, setLocation] = useState('')
-  const [eventType, setEventType] = useState<'meeting' | 'deadline' | 'holiday' | 'personal' | 'other'>('meeting')
+  const [eventType, setEventType] = useState<'meeting' | 'deadline' | 'holiday' | 'personal' | 'company' | 'other'>('meeting')
+  const [visibility, setVisibility] = useState<'personal' | 'company'>('personal')
   const [isAllDay, setIsAllDay] = useState(false)
   const [loading, setSaving] = useState(false)
   const [departments, setDepartments] = useState<{id: string, name: string}[]>([])
   const [selectedDepartment, setSelectedDepartment] = useState('')
+  const [userProfile, setUserProfile] = useState<any>(null)
 
   const supabase = createClient()
 
   useEffect(() => {
-    const fetchDepartments = async () => {
+    const fetchUserData = async () => {
       try {
+        // 사용자 프로필 정보 가져오기
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', currentUser.id)
+          .single()
+          
+        if (profileError) {
+          console.error('Error fetching profile:', profileError)
+        } else {
+          setUserProfile(profile)
+        }
+
+        // 부서 정보 가져오기
         const { data, error } = await supabase
           .from('departments')
           .select('id, name')
@@ -58,7 +74,7 @@ export default function EventModal({
     }
 
     if (isOpen) {
-      fetchDepartments()
+      fetchUserData()
       
       if (editingEvent) {
         // 기존 이벤트 편집
@@ -66,6 +82,7 @@ export default function EventModal({
         setDescription(editingEvent.description || '')
         setLocation(editingEvent.location || '')
         setEventType(editingEvent.event_type)
+        setVisibility(editingEvent.visibility)
         setIsAllDay(editingEvent.is_all_day)
         setSelectedDepartment(editingEvent.department_id || '')
         
@@ -117,6 +134,7 @@ export default function EventModal({
         end_date: endDateTime,
         location: location.trim() || null,
         event_type: eventType,
+        visibility: visibility,
         is_all_day: isAllDay,
         department_id: selectedDepartment || null,
         created_by: currentUser.id
@@ -191,6 +209,7 @@ export default function EventModal({
     setEndTime('')
     setLocation('')
     setEventType('meeting')
+    setVisibility('personal')
     setIsAllDay(false)
     setSelectedDepartment('')
   }
@@ -242,15 +261,59 @@ export default function EventModal({
             </label>
             <select
               value={eventType}
-              onChange={(e) => setEventType(e.target.value as 'meeting' | 'deadline' | 'holiday' | 'personal' | 'other')}
+              onChange={(e) => setEventType(e.target.value as 'meeting' | 'deadline' | 'holiday' | 'personal' | 'company' | 'other')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="meeting">회의</option>
               <option value="deadline">마감일</option>
               <option value="holiday">휴일</option>
               <option value="personal">개인</option>
+              <option value="company">회사</option>
               <option value="other">기타</option>
             </select>
+          </div>
+
+          {/* Visibility */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              캘린더 유형
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex items-center p-3 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer">
+                <input
+                  type="radio"
+                  name="visibility"
+                  value="personal"
+                  checked={visibility === 'personal'}
+                  onChange={(e) => setVisibility(e.target.value as 'personal' | 'company')}
+                  className="mr-2"
+                />
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-purple-500 rounded"></div>
+                  <span className="text-sm">개인 캘린더</span>
+                </div>
+              </label>
+              
+              {userProfile?.company_id && (
+                <label className="flex items-center p-3 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="visibility"
+                    value="company"
+                    checked={visibility === 'company'}
+                    onChange={(e) => setVisibility(e.target.value as 'personal' | 'company')}
+                    className="mr-2"
+                  />
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-orange-500 rounded"></div>
+                    <span className="text-sm">회사 캘린더</span>
+                  </div>
+                </label>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              개인 캘린더는 본인만, 회사 캘린더는 같은 회사 직원들이 볼 수 있습니다.
+            </p>
           </div>
 
           {/* All Day Toggle */}

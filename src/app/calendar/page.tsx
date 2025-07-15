@@ -19,7 +19,8 @@ export interface Event {
   created_by: string
   department_id?: string
   is_all_day: boolean
-  event_type: 'meeting' | 'deadline' | 'holiday' | 'personal' | 'other'
+  event_type: 'meeting' | 'deadline' | 'holiday' | 'personal' | 'company' | 'other'
+  visibility: 'personal' | 'company'
   created_at: string
   updated_at: string
 }
@@ -31,6 +32,9 @@ export default function CalendarPage() {
   const [showEventModal, setShowEventModal] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
+  const [showPersonalCalendar, setShowPersonalCalendar] = useState(true)
+  const [showCompanyCalendar, setShowCompanyCalendar] = useState(true)
+  const [userProfile, setUserProfile] = useState<any>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -41,6 +45,17 @@ export default function CalendarPage() {
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     setUser(user)
+    
+    if (user) {
+      // 사용자 프로필 정보 가져오기
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+      
+      setUserProfile(profile)
+    }
   }
 
   const fetchEvents = async () => {
@@ -138,6 +153,11 @@ export default function CalendarPage() {
             events={events}
             onDateClick={handleDateClick}
             onEventClick={handleEventClick}
+            showPersonalCalendar={showPersonalCalendar}
+            showCompanyCalendar={showCompanyCalendar}
+            onTogglePersonalCalendar={() => setShowPersonalCalendar(!showPersonalCalendar)}
+            onToggleCompanyCalendar={() => setShowCompanyCalendar(!showCompanyCalendar)}
+            userHasCompany={userProfile?.company_id !== null}
           />
         )}
       </main>

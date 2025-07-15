@@ -25,9 +25,21 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* 모든 텍스트를 검정색으로 */
-* {
+/* 모든 텍스트를 검정색으로 (헤딩 제외) */
+p, span, div:not(.emoji), a, button:not(.primary) {
   color: #000000;
+}
+
+/* 헤딩과 이모티콘은 기본 컬러 유지 */
+h1, h2, h3, h4, h5, h6 {
+  color: #000000;
+}
+
+/* 이모티콘 컬러 유지 */
+.emoji {
+  color: unset !important;
+  filter: none !important;
+  font-style: normal !important;
 }
 
 /* 버튼과 특정 컴포넌트는 제외 */
