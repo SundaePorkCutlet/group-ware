@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
-import { User, LogOut, Mail, Lock } from "lucide-react"
+import { LogOut, Mail, Lock } from "lucide-react"
 import { useState, useEffect } from "react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 

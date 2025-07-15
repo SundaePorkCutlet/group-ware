@@ -36,7 +36,7 @@ export default function CalendarPage() {
   useEffect(() => {
     checkUser()
     fetchEvents()
-  }, [])
+  }, [supabase.auth])
 
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser()

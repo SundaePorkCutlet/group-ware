@@ -121,7 +121,7 @@ export default function Calendar({ events, onDateClick, onEventClick }: Calendar
 
         {/* Calendar Days */}
         <div className="grid grid-cols-7 gap-1">
-          {days.map((date, index) => {
+          {days.map((date) => {
             const dayEvents = getEventsForDate(date)
             const isCurrentMonthDate = isCurrentMonth(date)
             const isTodayDate = isToday(date)

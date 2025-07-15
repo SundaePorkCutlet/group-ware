@@ -34,12 +34,29 @@ export default function EventModal({
   const [eventType, setEventType] = useState<'meeting' | 'deadline' | 'holiday' | 'personal' | 'other'>('meeting')
   const [isAllDay, setIsAllDay] = useState(false)
   const [loading, setSaving] = useState(false)
-  const [departments, setDepartments] = useState<any[]>([])
+  const [departments, setDepartments] = useState<{id: string, name: string}[]>([])
   const [selectedDepartment, setSelectedDepartment] = useState('')
 
   const supabase = createClient()
 
   useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('departments')
+          .select('id, name')
+          .order('name')
+
+        if (error) {
+          console.error('Error fetching departments:', error)
+        } else {
+          setDepartments(data || [])
+        }
+      } catch (error) {
+        console.error('Error:', error)
+      }
+    }
+
     if (isOpen) {
       fetchDepartments()
       
@@ -71,24 +88,7 @@ export default function EventModal({
         setEndTime('10:00')
       }
     }
-  }, [isOpen, editingEvent, selectedDate])
-
-  const fetchDepartments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('departments')
-        .select('id, name')
-        .order('name')
-
-      if (error) {
-        console.error('Error fetching departments:', error)
-      } else {
-        setDepartments(data || [])
-      }
-    } catch (error) {
-      console.error('Error:', error)
-    }
-  }
+  }, [isOpen, editingEvent, selectedDate, supabase])
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -242,7 +242,7 @@ export default function EventModal({
             </label>
             <select
               value={eventType}
-              onChange={(e) => setEventType(e.target.value as any)}
+              onChange={(e) => setEventType(e.target.value as 'meeting' | 'deadline' | 'holiday' | 'personal' | 'other')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="meeting">회의</option>
