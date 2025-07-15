@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import Modal from '@/components/ui/modal'
+import { ArrowLeft, Home } from 'lucide-react'
 
 interface Company {
   id: string
@@ -128,6 +129,26 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
+        {/* 상단 네비게이션 */}
+        <div className="flex items-center gap-3 mb-6">
+          <Button 
+            variant="outline" 
+            onClick={() => router.back()}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            뒤로가기
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => router.push('/')}
+            className="flex items-center gap-2"
+          >
+            <Home className="w-4 h-4" />
+            메인페이지
+          </Button>
+        </div>
+
         {/* 헤더 */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex justify-between items-center">

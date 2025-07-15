@@ -4,44 +4,11 @@ import { Button } from "@/components/ui/button"
 import AuthButton from "@/components/auth/AuthButton"
 import { CalendarDays, MessageSquare, Users, FileText, Settings, BarChart3, UserPlus } from "lucide-react"
 import Link from "next/link"
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase'
-
-interface Profile {
-  id: string
-  email: string
-  full_name: string | null
-  company_id: string | null
-  is_admin: boolean
-}
+import { useAuth } from '@/hooks/useAuth'
 
 export default function HomePage() {
-  const [user, setUser] = useState<any>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
-  const supabase = createClient()
-
-  useEffect(() => {
-    checkUser()
-  }, [])
-
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (user) {
-      // 프로필 정보 가져오기
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      setUser(user)
-      setProfile(profileData)
-    }
-    
-    setLoading(false)
-  }
+  const { user, profile, loading } = useAuth()
+  
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -52,10 +19,12 @@ export default function HomePage() {
               <h1 className="text-2xl font-bold text-gray-900">GroupWare</h1>
             </div>
             <div className="flex items-center gap-4">
-              <Button variant="outline" size="sm">
-                <Settings className="w-4 h-4 mr-2" />
-                설정
-              </Button>
+              <Link href="/profile">
+                <Button variant="outline" size="sm">
+                  <Settings className="w-4 h-4 mr-2" />
+                  설정
+                </Button>
+              </Link>
               <AuthButton />
             </div>
           </div>
@@ -67,7 +36,19 @@ export default function HomePage() {
         {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            안녕하세요! <span className="emoji">👋</span>
+            {loading ? (
+              <>
+                안녕하세요! <span className="emoji">👋</span>
+              </>
+            ) : user && profile ? (
+              <>
+                {profile.full_name ? `${profile.full_name}님` : `${profile.email}님`} 안녕하세요! <span className="emoji">👋</span>
+              </>
+            ) : (
+              <>
+                안녕하세요! <span className="emoji">👋</span>
+              </>
+            )}
           </h2>
           <p className="text-lg text-gray-600">
             오늘도 효율적인 업무를 위해 함께해요
@@ -108,54 +89,55 @@ export default function HomePage() {
             <Button className="w-full" variant="outline">파일 업로드</Button>
           </div>
 
-          {/* 팀 관리 / 회사 가입 */}
-          {loading ? (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          {/* 팀 관리 / 회사 가입 - 인증 상태에 따라 다르게 표시 */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            {!user ? (
+              // 로그인하지 않은 경우 - 기본 팀 관리 카드
+              <>
+                <div className="flex items-center mb-4">
+                  <Users className="w-8 h-8 text-gray-400 mr-3" />
+                  <h3 className="text-xl font-semibold text-gray-900">팀 관리</h3>
+                </div>
+                <p className="text-gray-600 mb-4">로그인 후 팀에 참여하세요</p>
+                <Button className="w-full" variant="outline" disabled>
+                  로그인 필요
+                </Button>
+              </>
+            ) : user && profile && !profile.company_id ? (
+              // 회사가 없는 경우 - 회사 가입하기 카드
+              <>
+                <div className="flex items-center mb-4">
+                  <UserPlus className="w-8 h-8 text-blue-600 mr-3" />
+                  <h3 className="text-xl font-semibold text-gray-900">회사 가입하기</h3>
+                </div>
+                <p className="text-gray-600 mb-4">회사 코드를 입력하여 팀에 참여하세요</p>
+                <Link href="/team">
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                    가입 코드 입력
+                  </Button>
+                </Link>
+              </>
+            ) : user && profile && profile.company_id ? (
+              // 회사가 있는 경우 - 팀 관리 카드
+              <>
+                <div className="flex items-center mb-4">
+                  <Users className="w-8 h-8 text-orange-600 mr-3" />
+                  <h3 className="text-xl font-semibold text-gray-900">팀 관리</h3>
+                </div>
+                <p className="text-gray-600 mb-4">조직과 팀원을 관리하세요</p>
+                <Link href="/team">
+                  <Button className="w-full" variant="outline">팀 보기</Button>
+                </Link>
+              </>
+            ) : (
+              // 로딩 중인 경우 - 스켈레톤
               <div className="animate-pulse">
                 <div className="h-8 bg-gray-200 rounded mb-4"></div>
                 <div className="h-4 bg-gray-200 rounded mb-4"></div>
                 <div className="h-10 bg-gray-200 rounded"></div>
               </div>
-            </div>
-          ) : user && profile && !profile.company_id ? (
-            // 회사가 없는 경우 - 회사 가입하기 카드
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-center mb-4">
-                <UserPlus className="w-8 h-8 text-blue-600 mr-3" />
-                <h3 className="text-xl font-semibold text-gray-900">회사 가입하기</h3>
-              </div>
-              <p className="text-gray-600 mb-4">회사 코드를 입력하여 팀에 참여하세요</p>
-              <Link href="/team">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                  가입 코드 입력
-                </Button>
-              </Link>
-            </div>
-          ) : user && profile && profile.company_id ? (
-            // 회사가 있는 경우 - 팀 관리 카드
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-center mb-4">
-                <Users className="w-8 h-8 text-orange-600 mr-3" />
-                <h3 className="text-xl font-semibold text-gray-900">팀 관리</h3>
-              </div>
-              <p className="text-gray-600 mb-4">조직과 팀원을 관리하세요</p>
-              <Link href="/team">
-                <Button className="w-full" variant="outline">팀 보기</Button>
-              </Link>
-            </div>
-          ) : (
-            // 로그인하지 않은 경우 - 기본 팀 관리 카드
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-center mb-4">
-                <Users className="w-8 h-8 text-gray-400 mr-3" />
-                <h3 className="text-xl font-semibold text-gray-900">팀 관리</h3>
-              </div>
-              <p className="text-gray-600 mb-4">로그인 후 팀에 참여하세요</p>
-              <Button className="w-full" variant="outline" disabled>
-                로그인 필요
-              </Button>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* 대시보드 */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">

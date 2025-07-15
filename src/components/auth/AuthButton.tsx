@@ -4,12 +4,11 @@ import { createClient } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import Modal from "@/components/ui/modal"
 import { LogOut, Mail, Lock } from "lucide-react"
-import { useState, useEffect } from "react"
-import type { User as SupabaseUser } from "@supabase/supabase-js"
+import { useState } from "react"
+import { useAuth } from "@/hooks/useAuth"
 
 export default function AuthButton() {
-  const [user, setUser] = useState<SupabaseUser | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { user, profile, loading } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showEmailModal, setShowEmailModal] = useState(false)
@@ -18,26 +17,7 @@ export default function AuthButton() {
   const [acceptCode, setAcceptCode] = useState("")
   const supabase = createClient()
 
-  useEffect(() => {
-    // 현재 사용자 확인
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      setLoading(false)
-    }
 
-    getUser()
-
-    // 인증 상태 변화 감지
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user || null)
-        setLoading(false)
-      }
-    )
-
-    return () => subscription.unsubscribe()
-  }, [supabase.auth])
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -144,7 +124,7 @@ export default function AuthButton() {
     return (
       <div className="flex items-center gap-2">
         <span className="text-sm text-gray-600">
-          안녕하세요, {user.email}님!
+          안녕하세요, {profile?.full_name ? `${profile.full_name}님` : `${user.email}님`}!
         </span>
         <Button variant="outline" size="sm" onClick={handleSignOut}>
           <LogOut className="w-4 h-4 mr-2" />

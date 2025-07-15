@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { ArrowLeft, Home } from 'lucide-react'
 
 interface Profile {
   id: string
@@ -158,6 +159,25 @@ export default function TeamPage() {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-4xl mx-auto">
+          {/* 상단 네비게이션 */}
+          <div className="flex items-center gap-3 mb-6">
+            <Button 
+              variant="outline" 
+              onClick={() => router.back()}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              뒤로가기
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => router.push('/')}
+              className="flex items-center gap-2"
+            >
+              <Home className="w-4 h-4" />
+              메인페이지
+            </Button>
+          </div>
           <div className="bg-white rounded-lg shadow p-6">
             <h1 className="text-2xl font-bold text-gray-900 mb-6">팀 관리</h1>
             
@@ -247,6 +267,25 @@ export default function TeamPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
+        {/* 상단 네비게이션 */}
+        <div className="flex items-center gap-3 mb-6">
+          <Button 
+            variant="outline" 
+            onClick={() => router.back()}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            뒤로가기
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => router.push('/')}
+            className="flex items-center gap-2"
+          >
+            <Home className="w-4 h-4" />
+            메인페이지
+          </Button>
+        </div>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex justify-between items-center mb-6">
             <div>

@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import Calendar from '@/components/calendar/Calendar'
 import EventModal from '@/components/calendar/EventModal'
-import { CalendarDays, Plus, ArrowLeft } from 'lucide-react'
+import { CalendarDays, Plus, ArrowLeft, Home } from 'lucide-react'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
 
@@ -120,9 +120,17 @@ export default function CalendarPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.history.back()}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                뒤로가기
+              </Button>
               <Link href="/">
                 <Button variant="outline" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  <Home className="w-4 h-4 mr-2" />
                   홈으로
                 </Button>
               </Link>
