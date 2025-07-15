@@ -1,9 +1,12 @@
-"use client"
-
 import { Button } from "@/components/ui/button"
-import AuthButton from "@/components/auth/AuthButton"
 import { CalendarDays, MessageSquare, Users, FileText, Settings, BarChart3 } from "lucide-react"
 import Link from "next/link"
+import dynamic from "next/dynamic"
+
+const AuthButton = dynamic(() => import("@/components/auth/AuthButton"), {
+  ssr: false,
+  loading: () => <Button disabled size="sm">로딩 중...</Button>
+})
 
 export default function HomePage() {
   return (
