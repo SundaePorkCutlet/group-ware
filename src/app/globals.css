@@ -20,7 +20,37 @@
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: white;
+  color: #000000;
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* 모든 텍스트를 검정색으로 */
+* {
+  color: #000000;
+}
+
+/* 버튼과 특정 컴포넌트는 제외 */
+button, .text-white, .bg-blue-500, .bg-red-500, .bg-green-500, .bg-purple-500, .bg-gray-500 {
+  color: white !important;
+}
+
+/* 버튼 색상 개선 */
+.bg-primary {
+  background-color: #2563eb !important;
+  color: white !important;
+}
+
+.bg-primary:hover {
+  background-color: #1d4ed8 !important;
+}
+
+button {
+  background-color: #2563eb;
+  color: white;
+  border: 1px solid #2563eb;
+}
+
+button:hover {
+  background-color: #1d4ed8;
 }
