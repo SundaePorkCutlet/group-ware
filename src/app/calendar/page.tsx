@@ -25,9 +25,21 @@ export interface Event {
   updated_at: string
 }
 
+interface AttendanceRecord {
+  id: string
+  user_id: string
+  company_id: string
+  date: string
+  clock_in_time: string | null
+  clock_out_time: string | null
+  created_at: string
+  updated_at: string
+}
+
 export default function CalendarPage() {
   const [user, setUser] = useState<User | null>(null)
   const [events, setEvents] = useState<Event[]>([])
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [showEventModal, setShowEventModal] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
@@ -40,6 +52,7 @@ export default function CalendarPage() {
   useEffect(() => {
     checkUser()
     fetchEvents()
+    fetchAttendance()
   }, [supabase.auth])
 
   const checkUser = async () => {
@@ -72,12 +85,33 @@ export default function CalendarPage() {
       if (error) {
         console.error('Error fetching events:', error)
       } else {
-        setEvents(data || [])
+        setEvents((data || []) as unknown as Event[])
       }
     } catch (error) {
       console.error('Error:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchAttendance = async () => {
+    if (!user) return
+
+    try {
+      const { data, error } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .limit(60) // 최근 2개월 정도
+
+      if (error) {
+        console.error('Error fetching attendance:', error)
+      } else {
+        setAttendance((data || []) as unknown as AttendanceRecord[])
+      }
+    } catch (error) {
+      console.error('Error:', error)
     }
   }
 
@@ -159,6 +193,7 @@ export default function CalendarPage() {
         ) : (
           <Calendar 
             events={events}
+            attendance={attendance}
             onDateClick={handleDateClick}
             onEventClick={handleEventClick}
             showPersonalCalendar={showPersonalCalendar}

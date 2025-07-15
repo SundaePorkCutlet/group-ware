@@ -5,8 +5,20 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-reac
 import { Button } from '@/components/ui/button'
 import type { Event } from '@/app/calendar/page'
 
+interface AttendanceRecord {
+  id: string
+  user_id: string
+  company_id: string
+  date: string
+  clock_in_time: string | null
+  clock_out_time: string | null
+  created_at: string
+  updated_at: string
+}
+
 interface CalendarProps {
   events: Event[]
+  attendance: AttendanceRecord[]
   onDateClick: (date: Date) => void
   onEventClick: (event: Event) => void
   showPersonalCalendar: boolean
@@ -33,6 +45,7 @@ const EVENT_TYPE_COLORS = {
 
 export default function Calendar({ 
   events, 
+  attendance,
   onDateClick, 
   onEventClick, 
   showPersonalCalendar, 
@@ -71,6 +84,11 @@ export default function Calendar({
       return checkDate >= new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate()) &&
              checkDate <= new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate())
     })
+  }
+
+  const getAttendanceForDate = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0]
+    return attendance.find(record => record.date === dateStr)
   }
 
   const formatTime = (dateString: string) => {
@@ -176,6 +194,7 @@ export default function Calendar({
         <div className="grid grid-cols-7 gap-1">
           {days.map((date) => {
             const dayEvents = getEventsForDate(date)
+            const dayAttendance = getAttendanceForDate(date)
             const isCurrentMonthDate = isCurrentMonth(date)
             const isTodayDate = isToday(date)
             const dayOfWeek = date.getDay() // 0=일요일, 6=토요일
@@ -197,9 +216,37 @@ export default function Calendar({
                   {date.getDate()}
                 </div>
                 
+                {/* Attendance for this day */}
+                {dayAttendance && isCurrentMonthDate && (
+                  <div className="mb-1">
+                    <div className="text-xs bg-indigo-100 text-indigo-800 px-1 py-0.5 rounded flex items-center justify-between">
+                      <span>🏢</span>
+                      <span>
+                        {dayAttendance.clock_in_time && (
+                          <span className="font-mono">
+                            {new Date(dayAttendance.clock_in_time).toLocaleTimeString('ko-KR', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </span>
+                        )}
+                        {dayAttendance.clock_in_time && dayAttendance.clock_out_time && ' - '}
+                        {dayAttendance.clock_out_time && (
+                          <span className="font-mono">
+                            {new Date(dayAttendance.clock_out_time).toLocaleTimeString('ko-KR', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Events for this day */}
                 <div className="space-y-1">
-                  {dayEvents.slice(0, 3).map(event => (
+                  {dayEvents.slice(0, dayAttendance && isCurrentMonthDate ? 2 : 3).map(event => (
                     <div
                       key={event.id}
                       className={`text-xs p-1 rounded text-white cursor-pointer hover:opacity-80 transition-opacity ${
@@ -221,9 +268,9 @@ export default function Calendar({
                     </div>
                   ))}
                   
-                  {dayEvents.length > 3 && (
+                  {dayEvents.length > (dayAttendance && isCurrentMonthDate ? 2 : 3) && (
                     <div className="text-xs text-gray-500 text-center">
-                      +{dayEvents.length - 3}개 더
+                      +{dayEvents.length - (dayAttendance && isCurrentMonthDate ? 2 : 3)}개 더
                     </div>
                   )}
                 </div>

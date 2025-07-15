@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import AuthButton from "@/components/auth/AuthButton"
+import AttendanceCard from "@/components/attendance/AttendanceCard"
 import { CalendarDays, MessageSquare, Users, FileText, Settings, BarChart3, UserPlus } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from '@/hooks/useAuth'
@@ -57,6 +58,9 @@ export default function HomePage() {
 
         {/* Quick Actions Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {/* 출근/퇴근 */}
+          <AttendanceCard />
+
           {/* 메시징 */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <div className="flex items-center mb-4">
