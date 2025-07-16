@@ -66,7 +66,7 @@ export default function EventModal({
         if (error) {
           console.error('Error fetching departments:', error)
         } else {
-          setDepartments(data || [])
+          setDepartments((data || []) as {id: string, name: string}[])
         }
       } catch (error) {
         console.error('Error:', error)
@@ -120,11 +120,17 @@ export default function EventModal({
       let endDateTime: string
 
       if (isAllDay) {
-        startDateTime = `${startDate}T00:00:00.000Z`
-        endDateTime = `${endDate}T23:59:59.999Z`
+        // 종일 일정: 로컬 기준으로 00:00 ~ 23:59:59
+        const start = new Date(`${startDate}T00:00:00`)
+        const end = new Date(`${endDate}T23:59:59`)
+        startDateTime = start.toISOString()
+        endDateTime = end.toISOString()
       } else {
-        startDateTime = `${startDate}T${startTime}:00.000Z`
-        endDateTime = `${endDate}T${endTime}:00.000Z`
+        // 시간 일정: 로컬 기준으로 입력값을 Date 객체로 만든 뒤 toISOString()
+        const start = new Date(`${startDate}T${startTime}:00`)
+        const end = new Date(`${endDate}T${endTime}:00`)
+        startDateTime = start.toISOString()
+        endDateTime = end.toISOString()
       }
 
       const eventData = {

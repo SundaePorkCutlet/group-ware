@@ -62,27 +62,62 @@ export default function AttendanceCard() {
   const createCalendarEvent = async (type: 'clock_in' | 'clock_out', dateTime: string) => {
     if (!user) return
 
-    const eventData = {
-      title: type === 'clock_in' ? '🌅 출근' : '🌆 퇴근',
-      description: type === 'clock_in' ? '출근 기록' : '퇴근 기록',
-      start_date: dateTime,
-      end_date: new Date(new Date(dateTime).getTime() + 30 * 60 * 1000).toISOString(), // 30분 후
-      event_type: 'personal' as const,
-      visibility: 'personal' as const,
-      is_all_day: false,
-      created_by: user.id
-    }
+    // 로컬 시간을 올바르게 처리
+    const localDateTime = new Date(dateTime)
+    const startDateTime = localDateTime.toISOString()
+    const endDateTime = new Date(localDateTime.getTime() + 30 * 60 * 1000).toISOString()
+    
+    const today = new Date().toISOString().split('T')[0]
+    const eventTitle = type === 'clock_in' ? '🌅 출근' : '🌆 퇴근'
 
     try {
-      const { error } = await supabase
+      // 오늘 동일한 타입의 출퇴근 이벤트가 이미 있는지 확인
+      const { data: existingEvents, error: fetchError } = await supabase
         .from('events')
-        .insert(eventData)
+        .select('*')
+        .eq('created_by', user.id)
+        .eq('title', eventTitle)
+        .gte('start_date', `${today}T00:00:00.000Z`)
+        .lt('start_date', `${today}T23:59:59.999Z`)
 
-      if (error) {
-        console.error('캘린더 이벤트 생성 오류:', error)
+      if (fetchError) {
+        console.error('기존 이벤트 조회 오류:', fetchError)
+        return
+      }
+
+      const eventData = {
+        title: eventTitle,
+        description: type === 'clock_in' ? '출근 기록 - 자동 생성' : '퇴근 기록 - 자동 생성',
+        start_date: startDateTime,
+        end_date: endDateTime,
+        event_type: 'company' as const, // 회사 관련 이벤트로 표시
+        visibility: 'personal' as const,
+        is_all_day: false,
+        created_by: user.id
+      }
+
+      if (existingEvents && existingEvents.length > 0) {
+        // 기존 이벤트 업데이트
+        const { error: updateError } = await supabase
+          .from('events')
+          .update(eventData)
+          .eq('id', (existingEvents[0] as any).id)
+
+        if (updateError) {
+          console.error('캘린더 이벤트 업데이트 오류:', updateError)
+        }
+      } else {
+        // 새 이벤트 생성
+        const { error: insertError } = await supabase
+          .from('events')
+          .insert(eventData)
+
+        if (insertError) {
+          console.error('캘린더 이벤트 생성 오류:', insertError)
+        }
       }
     } catch (error) {
-      console.error('캘린더 이벤트 생성 중 오류:', error)
+      console.error('캘린더 이벤트 처리 중 오류:', error)
     }
   }
 
