@@ -11,11 +11,17 @@ interface TodayAttendance {
   clockOut?: string
 }
 
+interface Company {
+  id: string
+  name: string
+}
+
 export default function AttendanceCard() {
   const { user, profile } = useAuth()
   const [todayAttendance, setTodayAttendance] = useState<TodayAttendance>({})
   const [isLoading, setIsLoading] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [company, setCompany] = useState<Company | null>(null)
   const supabase = createClient()
 
   // 현재 시간 업데이트
@@ -32,6 +38,13 @@ export default function AttendanceCard() {
       loadTodayAttendance()
     }
   }, [user])
+
+  // profile이 로드되면 회사 정보 조회
+  useEffect(() => {
+    if (profile) {
+      loadCompanyInfo()
+    }
+  }, [profile])
 
   const loadTodayAttendance = async () => {
     if (!user) return
@@ -64,6 +77,20 @@ export default function AttendanceCard() {
     })
 
     setTodayAttendance(attendance)
+  }
+
+  const loadCompanyInfo = async () => {
+    if (!profile?.company_id) return
+
+    const { data, error } = await supabase
+      .from('companies')
+      .select('id, name')
+      .eq('id', profile.company_id)
+      .single()
+
+    if (!error && data) {
+      setCompany(data as Company)
+    }
   }
 
   const handleClockIn = async () => {
@@ -174,7 +201,12 @@ export default function AttendanceCard() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center">
           <Clock className="w-5 h-5 text-gray-600 mr-2" />
-          <h2 className="text-lg font-semibold text-gray-900">출퇴근 관리</h2>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">출퇴근 관리</h2>
+            {company && (
+              <p className="text-sm text-gray-500">{company.name}</p>
+            )}
+          </div>
         </div>
         <div className="text-sm text-gray-500">
           {currentTime.toLocaleTimeString('ko-KR', { 

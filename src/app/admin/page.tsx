@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import Modal from '@/components/ui/modal'
 import { ArrowLeft, Home } from 'lucide-react'
