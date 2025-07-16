@@ -5,9 +5,13 @@ import { createClient } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import Calendar from '@/components/calendar/Calendar'
 import EventModal from '@/components/calendar/EventModal'
+import AttendanceModal from '@/components/calendar/AttendanceModal'
+import AttendanceListModal from '@/components/calendar/AttendanceListModal'
 import { CalendarDays, Plus, ArrowLeft, Home } from 'lucide-react'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
+import dynamic from 'next/dynamic';
+const WorkSummarySidebar = dynamic(() => import('@/components/work/WorkSummarySidebar'), { ssr: false });
 
 export interface Event {
   id: string
@@ -19,31 +23,24 @@ export interface Event {
   created_by: string
   department_id?: string
   is_all_day: boolean
-  event_type: 'meeting' | 'deadline' | 'holiday' | 'personal' | 'company' | 'other'
+  event_type: 'meeting' | 'deadline' | 'holiday' | 'personal' | 'company' | 'attendance' | 'other'
   visibility: 'personal' | 'company'
   created_at: string
   updated_at: string
-}
-
-interface AttendanceRecord {
-  id: string
-  user_id: string
-  company_id: string
-  date: string
-  clock_in_time: string | null
-  clock_out_time: string | null
-  created_at: string
-  updated_at: string
+  exclude_lunch_time?: boolean
 }
 
 export default function CalendarPage() {
   const [user, setUser] = useState<User | null>(null)
   const [events, setEvents] = useState<Event[]>([])
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [showEventModal, setShowEventModal] = useState(false)
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false)
+  const [showAttendanceListModal, setShowAttendanceListModal] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
+  const [attendanceEvents, setAttendanceEvents] = useState<Event[]>([])
+  const [attendanceDate, setAttendanceDate] = useState('')
   const [showPersonalCalendar, setShowPersonalCalendar] = useState(true)
   const [showCompanyCalendar, setShowCompanyCalendar] = useState(true)
   const [userProfile, setUserProfile] = useState<any>(null)
@@ -51,9 +48,13 @@ export default function CalendarPage() {
 
   useEffect(() => {
     checkUser()
-    fetchEvents()
-    fetchAttendance()
-  }, [supabase.auth])
+  }, [])
+
+  useEffect(() => {
+    if (user) {
+      fetchEvents()
+    }
+  }, [user])
 
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -72,6 +73,8 @@ export default function CalendarPage() {
   }
 
   const fetchEvents = async () => {
+    if (!user) return
+    
     try {
       const { data, error } = await supabase
         .from('events')
@@ -80,6 +83,7 @@ export default function CalendarPage() {
           profiles:created_by(full_name, email),
           departments:department_id(name)
         `)
+        .eq('created_by', user.id)
         .order('start_date', { ascending: true })
 
       if (error) {
@@ -91,27 +95,6 @@ export default function CalendarPage() {
       console.error('Error:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const fetchAttendance = async () => {
-    if (!user) return
-
-    try {
-      const { data, error } = await supabase
-        .from('attendance')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false })
-        .limit(60) // 최근 2개월 정도
-
-      if (error) {
-        console.error('Error fetching attendance:', error)
-      } else {
-        setAttendance((data || []) as unknown as AttendanceRecord[])
-      }
-    } catch (error) {
-      console.error('Error:', error)
     }
   }
 
@@ -127,9 +110,25 @@ export default function CalendarPage() {
     setShowEventModal(true)
   }
 
-  const handleEventClick = (event: Event) => {
+  const handleEventClick = (event: Event | any) => {
+    // 통합된 출퇴근 이벤트인지 확인
+    if (event.isAttendanceCombined && event.originalEvents) {
+      setAttendanceEvents(event.originalEvents)
+      setAttendanceDate(event.start_date)
+      setShowAttendanceListModal(true)
+      return
+    }
+    
+    // 개별 출퇴근 이벤트인지 확인
+    const isAttendanceEvent = event.title === '🌅 출근' || event.title === '🌆 퇴근'
+    
     setEditingEvent(event)
-    setShowEventModal(true)
+    
+    if (isAttendanceEvent) {
+      setShowAttendanceModal(true)
+    } else {
+      setShowEventModal(true)
+    }
   }
 
   if (!user) {
@@ -191,17 +190,26 @@ export default function CalendarPage() {
             </div>
           </div>
         ) : (
-          <Calendar 
-            events={events}
-            attendance={attendance}
-            onDateClick={handleDateClick}
-            onEventClick={handleEventClick}
-            showPersonalCalendar={showPersonalCalendar}
-            showCompanyCalendar={showCompanyCalendar}
-            onTogglePersonalCalendar={() => setShowPersonalCalendar(!showPersonalCalendar)}
-            onToggleCompanyCalendar={() => setShowCompanyCalendar(!showCompanyCalendar)}
-            userHasCompany={userProfile?.company_id !== null}
-          />
+          <div className="flex gap-6">
+            {/* Calendar */}
+            <div className="flex-1">
+              <Calendar 
+                events={events}
+                onDateClick={handleDateClick}
+                onEventClick={handleEventClick}
+                showPersonalCalendar={showPersonalCalendar}
+                showCompanyCalendar={showCompanyCalendar}
+                onTogglePersonalCalendar={() => setShowPersonalCalendar(!showPersonalCalendar)}
+                onToggleCompanyCalendar={() => setShowCompanyCalendar(!showCompanyCalendar)}
+                userHasCompany={userProfile?.company_id !== null}
+              />
+            </div>
+            
+            {/* Work Summary Sidebar */}
+            <div className="w-80">
+              <WorkSummarySidebar />
+            </div>
+          </div>
         )}
       </main>
 
@@ -218,6 +226,41 @@ export default function CalendarPage() {
           selectedDate={selectedDate}
           editingEvent={editingEvent}
           currentUser={user}
+        />
+      )}
+
+      {/* Attendance Modal */}
+      {showAttendanceModal && editingEvent && (
+        <AttendanceModal
+          isOpen={showAttendanceModal}
+          onClose={() => {
+            setShowAttendanceModal(false)
+            setEditingEvent(null)
+          }}
+          onDelete={() => {
+            fetchEvents()
+          }}
+          onSave={() => {
+            fetchEvents()
+          }}
+          event={editingEvent}
+        />
+      )}
+
+      {/* Attendance List Modal */}
+      {showAttendanceListModal && (
+        <AttendanceListModal
+          isOpen={showAttendanceListModal}
+          onClose={() => {
+            setShowAttendanceListModal(false)
+            setAttendanceEvents([])
+            setAttendanceDate('')
+          }}
+          onRefresh={() => {
+            fetchEvents()
+          }}
+          events={attendanceEvents}
+          date={attendanceDate}
         />
       )}
     </div>

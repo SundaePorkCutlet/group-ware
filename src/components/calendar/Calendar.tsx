@@ -5,20 +5,8 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-reac
 import { Button } from '@/components/ui/button'
 import type { Event } from '@/app/calendar/page'
 
-interface AttendanceRecord {
-  id: string
-  user_id: string
-  company_id: string
-  date: string
-  clock_in_time: string | null
-  clock_out_time: string | null
-  created_at: string
-  updated_at: string
-}
-
 interface CalendarProps {
   events: Event[]
-  attendance: AttendanceRecord[]
   onDateClick: (date: Date) => void
   onEventClick: (event: Event) => void
   showPersonalCalendar: boolean
@@ -40,12 +28,12 @@ const EVENT_TYPE_COLORS = {
   holiday: 'bg-green-500',
   personal: 'bg-purple-500',
   company: 'bg-orange-500',
+  attendance: 'bg-indigo-500',
   other: 'bg-gray-500'
 }
 
 export default function Calendar({ 
   events, 
-  attendance,
   onDateClick, 
   onEventClick, 
   showPersonalCalendar, 
@@ -86,10 +74,7 @@ export default function Calendar({
     })
   }
 
-  const getAttendanceForDate = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0]
-    return attendance.find(record => record.date === dateStr)
-  }
+
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString)
@@ -194,7 +179,7 @@ export default function Calendar({
         <div className="grid grid-cols-7 gap-1">
           {days.map((date) => {
             const dayEvents = getEventsForDate(date)
-            const dayAttendance = getAttendanceForDate(date)
+
             const isCurrentMonthDate = isCurrentMonth(date)
             const isTodayDate = isToday(date)
             const dayOfWeek = date.getDay() // 0=일요일, 6=토요일
@@ -216,63 +201,128 @@ export default function Calendar({
                   {date.getDate()}
                 </div>
                 
-                {/* Attendance for this day */}
-                {dayAttendance && isCurrentMonthDate && (
-                  <div className="mb-1">
-                    <div className="text-xs bg-indigo-100 text-indigo-800 px-1 py-0.5 rounded flex items-center justify-between">
-                      <span>🏢</span>
-                      <span>
-                        {dayAttendance.clock_in_time && (
-                          <span className="font-mono">
-                            {new Date(dayAttendance.clock_in_time).toLocaleTimeString('ko-KR', { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </span>
-                        )}
-                        {dayAttendance.clock_in_time && dayAttendance.clock_out_time && ' - '}
-                        {dayAttendance.clock_out_time && (
-                          <span className="font-mono">
-                            {new Date(dayAttendance.clock_out_time).toLocaleTimeString('ko-KR', { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                )}
+
 
                 {/* Events for this day */}
                 <div className="space-y-1">
-                  {dayEvents.slice(0, dayAttendance && isCurrentMonthDate ? 2 : 3).map(event => (
-                    <div
-                      key={event.id}
-                      className={`text-xs p-1 rounded text-white cursor-pointer hover:opacity-80 transition-opacity ${
-                        EVENT_TYPE_COLORS[event.event_type]
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onEventClick(event)
-                      }}
-                      title={`${event.title}${event.location ? ` @ ${event.location}` : ''}`}
-                    >
-                      <div className="truncate">
-                        {event.is_all_day ? (
-                          event.title
-                        ) : (
-                          `${formatTime(event.start_date)} ${event.title}`
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                  {(() => {
+                    // 출퇴근 이벤트를 따로 분리하고 합치기
+                    const attendanceEvents = dayEvents.filter(event => 
+                      event.title === '🌅 출근' || event.title === '🌆 퇴근'
+                    )
+                    const otherEvents = dayEvents.filter(event => 
+                      event.title !== '🌅 출근' && event.title !== '🌆 퇴근'
+                    )
+
+                    const displayEvents = []
+                    
+                    // 출퇴근 이벤트가 있으면 하나로 합쳐서 표시
+                    if (attendanceEvents.length > 0) {
+                      const clockIn = attendanceEvents.find(e => e.title === '🌅 출근')
+                      const clockOut = attendanceEvents.find(e => e.title === '🌆 퇴근')
+                      
+                      // 가짜 출퇴근 통합 이벤트 생성
+                      const combinedEvent = {
+                        id: 'attendance-combined',
+                        title: '',
+                        description: '출퇴근 기록',
+                        start_date: clockIn?.start_date || clockOut?.start_date || '',
+                        end_date: clockOut?.end_date || clockIn?.end_date || '',
+                        location: '',
+                        created_by: clockIn?.created_by || clockOut?.created_by || '',
+                        department_id: '',
+                        is_all_day: false,
+                        event_type: 'personal' as const,
+                        visibility: 'personal' as const,
+                        created_at: clockIn?.created_at || clockOut?.created_at || '',
+                        updated_at: clockIn?.updated_at || clockOut?.updated_at || '',
+                        isAttendanceCombined: true,
+                        originalEvents: attendanceEvents
+                      }
+                      
+                      // 제목 설정 - 더 간단하게
+                      if (clockIn && clockOut) {
+                        combinedEvent.title = `${formatTime(clockIn.start_date)}-${formatTime(clockOut.start_date)}`
+                      } else if (clockIn) {
+                        combinedEvent.title = `${formatTime(clockIn.start_date)} 출근`
+                      } else if (clockOut) {
+                        combinedEvent.title = `${formatTime(clockOut.start_date)} 퇴근`
+                      }
+                      
+                      displayEvents.push(combinedEvent)
+                    }
+                    
+                    // 일반 이벤트들 추가
+                    displayEvents.push(...otherEvents)
+                    
+                    // 표시할 이벤트 개수 제한
+                    const maxEvents = 3
+                    return displayEvents.slice(0, maxEvents).map(event => {
+                      // 출퇴근 이벤트는 특별한 디자인으로 표시
+                      if ((event as any).isAttendanceCombined) {
+                        return (
+                          <div key={event.id} className="mb-1">
+                            <div 
+                              className="text-xs bg-indigo-100 text-indigo-800 px-1 py-0.5 rounded flex items-center justify-between cursor-pointer hover:bg-indigo-200 transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onEventClick(event)
+                              }}
+                              title="출퇴근 기록"
+                            >
+                              <span>🏢</span>
+                              <span className="font-mono">{event.title}</span>
+                            </div>
+                          </div>
+                        )
+                      }
+                      
+                      // 일반 이벤트는 기존 디자인 유지
+                      return (
+                        <div
+                          key={event.id}
+                          className={`text-xs p-1 rounded text-white cursor-pointer hover:opacity-80 transition-opacity ${
+                            EVENT_TYPE_COLORS[event.event_type as keyof typeof EVENT_TYPE_COLORS]
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onEventClick(event)
+                          }}
+                          title={`${event.title}${event.location ? ` @ ${event.location}` : ''}`}
+                        >
+                          <div className="truncate">
+                            {event.is_all_day ? (
+                              event.title
+                            ) : (
+                              `${formatTime(event.start_date)} ${event.title}`
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })
+                  })()}
                   
-                  {dayEvents.length > (dayAttendance && isCurrentMonthDate ? 2 : 3) && (
-                    <div className="text-xs text-gray-500 text-center">
-                      +{dayEvents.length - (dayAttendance && isCurrentMonthDate ? 2 : 3)}개 더
-                    </div>
-                  )}
+                  {(() => {
+                    const attendanceEvents = dayEvents.filter(event => 
+                      event.title === '🌅 출근' || event.title === '🌆 퇴근'
+                    )
+                    const otherEvents = dayEvents.filter(event => 
+                      event.title !== '🌅 출근' && event.title !== '🌆 퇴근'
+                    )
+                    
+                    // 출퇴근이 있으면 1개로 계산, 없으면 0개
+                    const displayCount = (attendanceEvents.length > 0 ? 1 : 0) + otherEvents.length
+                    const maxEvents = 3
+                    
+                    if (displayCount > maxEvents) {
+                      return (
+                        <div className="text-xs text-gray-500 text-center">
+                          +{displayCount - maxEvents}개 더
+                        </div>
+                      )
+                    }
+                    return null
+                  })()}
                 </div>
               </div>
             )

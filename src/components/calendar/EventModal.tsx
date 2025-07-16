@@ -31,7 +31,7 @@ export default function EventModal({
   const [endDate, setEndDate] = useState('')
   const [endTime, setEndTime] = useState('')
   const [location, setLocation] = useState('')
-  const [eventType, setEventType] = useState<'meeting' | 'deadline' | 'holiday' | 'personal' | 'company' | 'other'>('meeting')
+  const [eventType, setEventType] = useState<'meeting' | 'deadline' | 'holiday' | 'personal' | 'company' | 'attendance' | 'other'>('meeting')
   const [visibility, setVisibility] = useState<'personal' | 'company'>('personal')
   const [isAllDay, setIsAllDay] = useState(false)
   const [loading, setSaving] = useState(false)
@@ -97,8 +97,12 @@ export default function EventModal({
           setEndTime(end.toTimeString().slice(0, 5))
         }
       } else if (selectedDate) {
-        // 새 이벤트 생성
-        const dateStr = selectedDate.toISOString().split('T')[0]
+        // 새 이벤트 생성 - 로컬 날짜로 처리
+        const year = selectedDate.getFullYear()
+        const month = String(selectedDate.getMonth() + 1).padStart(2, '0')
+        const day = String(selectedDate.getDate()).padStart(2, '0')
+        const dateStr = `${year}-${month}-${day}`
+        
         setStartDate(dateStr)
         setEndDate(dateStr)
         setStartTime('09:00')
@@ -106,6 +110,13 @@ export default function EventModal({
       }
     }
   }, [isOpen, editingEvent, selectedDate, supabase])
+
+  useEffect(() => {
+    if (eventType === 'attendance') {
+      setVisibility('personal')
+      setIsAllDay(false)
+    }
+  }, [eventType])
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -143,7 +154,9 @@ export default function EventModal({
         visibility: visibility,
         is_all_day: isAllDay,
         department_id: selectedDepartment || null,
-        created_by: currentUser.id
+        created_by: currentUser.id,
+        // 출퇴근 이벤트인 경우 기본값으로 점심시간 제외
+        ...(eventType === 'attendance' && { exclude_lunch_time: true })
       }
 
       let error
@@ -161,6 +174,8 @@ export default function EventModal({
           .from('events')
           .insert(eventData)
         error = insertError
+
+
       }
 
       if (error) {
@@ -186,6 +201,7 @@ export default function EventModal({
     setSaving(true)
 
     try {
+      // 이벤트 삭제
       const { error } = await supabase
         .from('events')
         .delete()
@@ -228,7 +244,10 @@ export default function EventModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+    >
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -245,21 +264,6 @@ export default function EventModal({
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Title */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              제목 *
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="일정 제목을 입력하세요"
-              required
-            />
-          </div>
-
           {/* Event Type */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -267,7 +271,7 @@ export default function EventModal({
             </label>
             <select
               value={eventType}
-              onChange={(e) => setEventType(e.target.value as 'meeting' | 'deadline' | 'holiday' | 'personal' | 'company' | 'other')}
+              onChange={(e) => setEventType(e.target.value as 'meeting' | 'deadline' | 'holiday' | 'personal' | 'company' | 'attendance' | 'other')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="meeting">회의</option>
@@ -275,162 +279,272 @@ export default function EventModal({
               <option value="holiday">휴일</option>
               <option value="personal">개인</option>
               <option value="company">회사</option>
+              <option value="attendance">출퇴근</option>
               <option value="other">기타</option>
             </select>
           </div>
 
-          {/* Visibility */}
+          {/* 출퇴근 타입일 때만 출퇴근 종류 선택 */}
+          {eventType === 'attendance' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                출퇴근 종류
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setTitle('🌅 출근')}
+                  className={`p-3 border rounded-lg text-center transition-colors ${
+                    title === '🌅 출근' 
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700' 
+                      : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  🌅 출근
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTitle('🌆 퇴근')}
+                  className={`p-3 border rounded-lg text-center transition-colors ${
+                    title === '🌆 퇴근' 
+                      ? 'border-orange-500 bg-orange-50 text-orange-700' 
+                      : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  🌆 퇴근
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 출퇴근이 아닐 때만 제목 입력 */}
+          {eventType !== 'attendance' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                제목 *
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="일정 제목을 입력하세요"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+          )}
+
+          {/* 출퇴근이 아닐 때만 설명 입력 */}
+          {eventType !== 'attendance' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                설명
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="일정에 대한 추가 정보를 입력하세요"
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          )}
+
+          {/* Date and Time */}
+          {eventType === 'attendance' ? (
+            // 출퇴근 모드: 시작 시간만 (출근/퇴근 시간)
+            <div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                  <Clock className="w-4 h-4 mr-1" />
+                  날짜
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value)
+                    setEndDate(e.target.value)
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+              </div>
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {title === '🌅 출근' ? '출근 시간' : title === '🌆 퇴근' ? '퇴근 시간' : '시간'}
+                </label>
+                <input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => {
+                    setStartTime(e.target.value)
+                    setEndTime(e.target.value)
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+              </div>
+            </div>
+          ) : (
+            // 일반 일정 모드: 시작일/종료일 분리
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                    <Clock className="w-4 h-4 mr-1" />
+                    시작일
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    종료일
+                  </label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              {!isAllDay && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      시작 시간
+                    </label>
+                    <input
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      종료 시간
+                    </label>
+                    <input
+                      type="time"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* 출퇴근이 아닐 때만 장소 입력 */}
+          {eventType !== 'attendance' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                <MapPin className="w-4 h-4 mr-1" />
+                장소
+              </label>
+              <input
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="회의실, 주소 등"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          )}
+
+          {/* 출퇴근이 아닐 때만 부서 선택 */}
+          {eventType !== 'attendance' && userProfile?.company_id && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                <Users className="w-4 h-4 mr-1" />
+                유형 부서
+              </label>
+              <select
+                value={selectedDepartment}
+                onChange={(e) => setSelectedDepartment(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">부서 선택 (선택사항)</option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.id}>
+                    {dept.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Visibility - 항상 표시하되 출퇴근은 개인으로 고정 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               캘린더 유형
             </label>
             <div className="grid grid-cols-2 gap-3">
-              <label className="flex items-center p-3 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer">
+              <label className={`flex items-center p-3 border border-gray-300 rounded-md cursor-pointer ${
+                eventType === 'attendance' ? 'opacity-50' : 'hover:bg-gray-50'
+              }`}>
                 <input
                   type="radio"
                   name="visibility"
                   value="personal"
                   checked={visibility === 'personal'}
-                  onChange={(e) => setVisibility(e.target.value as 'personal' | 'company')}
-                  className="mr-2"
+                  onChange={(e) => eventType !== 'attendance' && setVisibility(e.target.value as 'personal' | 'company')}
+                  disabled={eventType === 'attendance'}
+                  className="mr-3"
                 />
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-purple-500 rounded"></div>
-                  <span className="text-sm">개인 캘린더</span>
-                </div>
+                <div className="w-3 h-3 bg-purple-500 rounded mr-2"></div>
+                개인 캘린더
               </label>
               
               {userProfile?.company_id && (
-                <label className="flex items-center p-3 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer">
+                <label className={`flex items-center p-3 border border-gray-300 rounded-md cursor-pointer ${
+                  eventType === 'attendance' ? 'opacity-50' : 'hover:bg-gray-50'
+                }`}>
                   <input
                     type="radio"
                     name="visibility"
                     value="company"
                     checked={visibility === 'company'}
-                    onChange={(e) => setVisibility(e.target.value as 'personal' | 'company')}
-                    className="mr-2"
+                    onChange={(e) => eventType !== 'attendance' && setVisibility(e.target.value as 'personal' | 'company')}
+                    disabled={eventType === 'attendance'}
+                    className="mr-3"
                   />
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-orange-500 rounded"></div>
-                    <span className="text-sm">회사 캘린더</span>
-                  </div>
+                  <div className="w-3 h-3 bg-orange-500 rounded mr-2"></div>
+                  회사 캘린더
                 </label>
               )}
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              개인 캘린더는 본인만, 회사 캘린더는 같은 회사 직원들이 볼 수 있습니다.
-            </p>
+            {eventType === 'attendance' && (
+              <p className="text-sm text-gray-500 mt-1">출퇴근은 본인만 볼 수 있습니다.</p>
+            )}
           </div>
 
-          {/* All Day Toggle */}
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="allDay"
-              checked={isAllDay}
-              onChange={(e) => setIsAllDay(e.target.checked)}
-              className="mr-2"
-            />
-            <label htmlFor="allDay" className="text-sm font-medium text-gray-700">
-              종일 일정
-            </label>
-          </div>
-
-          {/* Date & Time */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Clock className="w-4 h-4 inline mr-1" />
-                시작일
-              </label>
+          {/* All Day Toggle - 출퇴근이 아닐 때만 표시 */}
+          {eventType !== 'attendance' && (
+            <div className="flex items-center">
               <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
+                type="checkbox"
+                id="allDay"
+                checked={isAllDay}
+                onChange={(e) => setIsAllDay(e.target.checked)}
+                className="mr-3 rounded border-gray-300"
               />
-              {!isAllDay && (
-                <input
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mt-2"
-                  required
-                />
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                종료일
+              <label htmlFor="allDay" className="text-sm font-medium text-gray-700">
+                종일 일정
               </label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
-              />
-              {!isAllDay && (
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mt-2"
-                  required
-                />
-              )}
             </div>
-          </div>
-
-          {/* Location */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <MapPin className="w-4 h-4 inline mr-1" />
-              장소
-            </label>
-            <input
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="회의실, 주소 등"
-            />
-          </div>
-
-          {/* Department */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Users className="w-4 h-4 inline mr-1" />
-              부서
-            </label>
-            <select
-              value={selectedDepartment}
-              onChange={(e) => setSelectedDepartment(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">부서 선택 (선택사항)</option>
-              {departments.map(dept => (
-                <option key={dept.id} value={dept.id}>
-                  {dept.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              설명
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="일정에 대한 추가 정보를 입력하세요"
-            />
-          </div>
+          )}
         </div>
 
         {/* Footer */}
