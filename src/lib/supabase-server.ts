@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { fetchWithTimeout } from './utils'
 
 export async function createClient() {
   const cookieStore = await cookies()
@@ -13,6 +14,9 @@ export async function createClient() {
           return cookieStore.get(name)?.value
         },
       },
+      global: {
+        fetch: fetchWithTimeout
+      }
     }
   )
 } 

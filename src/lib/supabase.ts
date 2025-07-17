@@ -1,4 +1,5 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { fetchWithTimeout } from './utils'
 
 let supabaseInstance: ReturnType<typeof createSupabaseClient> | null = null
 
@@ -17,6 +18,9 @@ export function createClient() {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true
+      },
+      global: {
+        fetch: fetchWithTimeout
       }
     }
   )

@@ -5,10 +5,13 @@ import { Button } from "@/components/ui/button"
 import Modal from "@/components/ui/modal"
 import { LogOut, Mail, Lock } from "lucide-react"
 import { useState } from "react"
-import { useAuth } from "@/hooks/useAuth"
+import { useAuthStore } from "@/store/authStore"
 
 export default function AuthButton() {
-  const { user, profile, loading } = useAuth()
+  const user = useAuthStore(state => state.user)
+  const profile = useAuthStore(state => state.profile)
+  // loading 상태는 zustand에 별도 구현 필요(간단히 false로 대체)
+  const loading = false;
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showEmailModal, setShowEmailModal] = useState(false)

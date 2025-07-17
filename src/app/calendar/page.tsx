@@ -9,7 +9,7 @@ import AttendanceModal from '@/components/calendar/AttendanceModal'
 import AttendanceListModal from '@/components/calendar/AttendanceListModal'
 import { CalendarDays, Plus, ArrowLeft, Home } from 'lucide-react'
 import Link from 'next/link'
-import type { User } from '@supabase/supabase-js'
+import { useAuthStore } from '@/store/authStore'
 import dynamic from 'next/dynamic';
 const WorkSummarySidebar = dynamic(() => import('@/components/work/WorkSummarySidebar'), { ssr: false });
 
@@ -28,10 +28,12 @@ export interface Event {
   created_at: string
   updated_at: string
   exclude_lunch_time?: boolean
+  leave_type?: string // 추가
 }
 
 export default function CalendarPage() {
-  const [user, setUser] = useState<User | null>(null)
+  const user = useAuthStore(state => state.user)
+  const userProfile = useAuthStore(state => state.profile)
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [showEventModal, setShowEventModal] = useState(false)
@@ -43,34 +45,13 @@ export default function CalendarPage() {
   const [attendanceDate, setAttendanceDate] = useState('')
   const [showPersonalCalendar, setShowPersonalCalendar] = useState(true)
   const [showCompanyCalendar, setShowCompanyCalendar] = useState(true)
-  const [userProfile, setUserProfile] = useState<any>(null)
   const supabase = createClient()
-
-  useEffect(() => {
-    checkUser()
-  }, [])
 
   useEffect(() => {
     if (user) {
       fetchEvents()
     }
   }, [user])
-
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    setUser(user)
-    
-    if (user) {
-      // 사용자 프로필 정보 가져오기
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-      
-      setUserProfile(profile)
-    }
-  }
 
   const fetchEvents = async () => {
     if (!user) return
@@ -225,7 +206,6 @@ export default function CalendarPage() {
           onSave={handleEventSave}
           selectedDate={selectedDate}
           editingEvent={editingEvent}
-          currentUser={user}
         />
       )}
 

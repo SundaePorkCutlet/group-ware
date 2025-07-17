@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { Clock, LogIn, LogOut, Coffee, Home, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuthStore } from '@/store/authStore'
 
 interface TodayAttendance {
   clockIn?: string
@@ -17,7 +17,8 @@ interface Company {
 }
 
 export default function AttendanceCard() {
-  const { user, profile } = useAuth()
+  const user = useAuthStore(state => state.user)
+  const profile = useAuthStore(state => state.profile)
   const [todayAttendance, setTodayAttendance] = useState<TodayAttendance>({})
   const [isLoading, setIsLoading] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())

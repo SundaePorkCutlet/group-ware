@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
-import { useAuth } from '@/hooks/useAuth';
-import { Settings } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
+import { Settings, CalendarDays, CheckCircle, Clock, MinusCircle } from 'lucide-react';
 
 interface AttendanceEvent {
   id: string;
@@ -11,18 +11,44 @@ interface AttendanceEvent {
   exclude_lunch_time?: boolean;
 }
 
+interface HolidayEvent {
+  id: string;
+  start_date: string;
+  end_date: string;
+  description?: string; // 연차/반차/반반차
+  leave_type?: string | null;
+}
+
+// ProgressBar 컴포넌트 (간단 버전)
+function ProgressBar({ percent, color = 'bg-blue-500', height = 'h-2', bg = 'bg-gray-200' }: { percent: number, color?: string, height?: string, bg?: string }) {
+  return (
+    <div className={`w-full rounded ${bg} ${height}`} style={{ minWidth: 60 }}>
+      <div
+        className={`rounded ${color} ${height}`}
+        style={{ width: `${Math.min(Math.max(percent, 0), 100)}%`, transition: 'width 0.3s' }}
+      />
+    </div>
+  )
+}
+
 export default function WorkSummarySidebar() {
-  const { user, profile } = useAuth();
+  const user = useAuthStore(state => state.user);
+  const profile = useAuthStore(state => state.profile);
   const supabase = createClient();
   const [weeklyWorkHours, setWeeklyWorkHours] = useState<number>(40);
   const [workStart, setWorkStart] = useState<string>('월');
   const [workEnd, setWorkEnd] = useState<string>('금');
 
   const [attendanceEvents, setAttendanceEvents] = useState<AttendanceEvent[]>([]);
+  const [holidayEvents, setHolidayEvents] = useState<HolidayEvent[]>([]);
   const [totalWorked, setTotalWorked] = useState<number>(0); // 분 단위
   const [showSetting, setShowSetting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [annualLeave, setAnnualLeave] = useState<number>(15); // 기본값 15일
+  const [usedAnnualLeave, setUsedAnnualLeave] = useState<number>(0);
+  const [savingAnnual, setSavingAnnual] = useState(false);
+  const [annualMsg, setAnnualMsg] = useState<string | null>(null);
 
   // 유저 프로필 정보 fetch
   useEffect(() => {
@@ -30,13 +56,14 @@ export default function WorkSummarySidebar() {
     (async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('weekly_work_hours, weekly_work_start, weekly_work_end')
+        .select('weekly_work_hours, weekly_work_start, weekly_work_end, annual_leave')
         .eq('id', user.id)
         .single();
       if (!error && data) {
         setWeeklyWorkHours(Number(data.weekly_work_hours ?? 40));
         setWorkStart(String(data.weekly_work_start ?? '월'));
         setWorkEnd(String(data.weekly_work_end ?? '금'));
+        setAnnualLeave(Number(data.annual_leave ?? 15));
       }
     })();
   }, [user]);
@@ -71,13 +98,42 @@ export default function WorkSummarySidebar() {
       if (!eventsError && eventsData) {
         setAttendanceEvents((eventsData as unknown as AttendanceEvent[]) ?? []);
       }
+
+      // 올해 전체 범위로 holidayEvents 조회
+      const yearStart = new Date(now.getFullYear(), 0, 1);
+      const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+      const { data: holidayData, error: holidayError } = await supabase
+        .from('events')
+        .select('id, start_date, end_date, description, leave_type')
+        .eq('created_by', user.id)
+        .eq('event_type', 'holiday')
+        .not('leave_type', 'is', null)
+        .gte('start_date', yearStart.toISOString())
+        .lte('end_date', yearEnd.toISOString());
+      if (!holidayError && holidayData) {
+        setHolidayEvents((holidayData as unknown as HolidayEvent[]) ?? []);
+      }
     })();
   }, [user, workStart, workEnd]);
 
   // 누적 근무시간 계산 (events 테이블만 사용, 각 날짜별 점심시간 제외 설정 적용)
   useEffect(() => {
     let total = 0;
-    
+    // 요일 인덱스 계산 (휴가 1일당 근무시간 계산에 필요)
+    const weekDays = ['일','월','화','수','목','금','토'];
+    const startIdx = weekDays.indexOf(workStart);
+    const endIdx = weekDays.indexOf(workEnd);
+    const workDays = ((endIdx - startIdx + 7) % 7) + 1;
+
+    // 이번 주 시작/끝 계산
+    const now = new Date();
+    let weekStart = new Date(now);
+    let weekEnd = new Date(now);
+    weekStart.setDate(now.getDate() - ((now.getDay() + 7 - startIdx) % 7));
+    weekStart.setHours(0,0,0,0);
+    weekEnd.setDate(weekStart.getDate() + ((endIdx - startIdx + 7) % 7));
+    weekEnd.setHours(23,59,59,999);
+
     // events 테이블에서 계산 (날짜별로 출근/퇴근 매칭)
     const eventsByDate: { [date: string]: { 
       clockIn?: Date, 
@@ -113,9 +169,55 @@ export default function WorkSummarySidebar() {
         }
       }
     });
-    
+
+    // 이번 주 휴가(holiday) 일정만 근무시간에 더하기
+    let holidayTotalMin = 0;
+    const dayMs = 24 * 60 * 60 * 1000;
+    const weeklyHolidays = holidayEvents.filter(event => {
+      const start = new Date(event.start_date);
+      const end = new Date(event.end_date);
+      return end >= weekStart && start <= weekEnd && ['1','2','3'].includes(String(event.leave_type));
+    });
+    weeklyHolidays.forEach((event) => {
+      // 휴가 일정이 며칠짜리인지 계산 (종료일-시작일+1, 단 이번 주 내로 제한)
+      const start = new Date(event.start_date) < weekStart ? weekStart : new Date(event.start_date);
+      const end = new Date(event.end_date) > weekEnd ? weekEnd : new Date(event.end_date);
+      const days = Math.round((end.getTime() - start.getTime()) / dayMs) + 1;
+      let dayValue = 1;
+      if (String(event.leave_type) === '2') dayValue = 0.5;
+      else if (String(event.leave_type) === '3') dayValue = 0.25;
+      holidayTotalMin += days * dayValue * (weeklyWorkHours * 60 / workDays);
+    });
+    total += holidayTotalMin;
     setTotalWorked(total);
-  }, [attendanceEvents]);
+  }, [attendanceEvents, holidayEvents, weeklyWorkHours, workStart, workEnd]);
+
+  // 올해 사용한 연차 계산
+  useEffect(() => {
+    // 올해 1월 1일 ~ 12월 31일 범위
+    const now = new Date();
+    const yearStart = new Date(now.getFullYear(), 0, 1);
+    const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+    let used = 0;
+    console.log('holidayEvents:', holidayEvents); // leave_type 타입/값 확인용
+    holidayEvents
+      .filter(event => event.leave_type === '1' || event.leave_type === '2' || event.leave_type === '3')
+      .forEach((event) => {
+        // 올해 내 휴가만 계산
+        const start = new Date(event.start_date);
+        const end = new Date(event.end_date);
+        if (end < yearStart || start > yearEnd) return;
+        const realStart = start < yearStart ? yearStart : start;
+        const realEnd = end > yearEnd ? yearEnd : end;
+        const dayMs = 24 * 60 * 60 * 1000;
+        const days = Math.round((realEnd.getTime() - realStart.getTime()) / dayMs) + 1;
+        let dayValue = 1;
+        if (event.leave_type === '2') dayValue = 0.5;
+        else if (event.leave_type === '3') dayValue = 0.25;
+        used += days * dayValue;
+      });
+    setUsedAnnualLeave(used);
+  }, [holidayEvents]);
 
   // 시간 포맷터
   const formatHourMin = (min: number) => {
@@ -138,6 +240,7 @@ export default function WorkSummarySidebar() {
         weekly_work_hours: weeklyWorkHours,
         weekly_work_start: workStart,
         weekly_work_end: workEnd,
+        annual_leave: annualLeave,
       })
       .eq('id', user.id);
     setSaving(false);
@@ -152,38 +255,139 @@ export default function WorkSummarySidebar() {
       (async () => {
         const { data, error } = await supabase
           .from('profiles')
-          .select('weekly_work_hours, weekly_work_start, weekly_work_end')
+          .select('weekly_work_hours, weekly_work_start, weekly_work_end, annual_leave')
           .eq('id', user.id)
           .single();
         if (!error && data) {
           setWeeklyWorkHours(Number(data.weekly_work_hours ?? 40));
           setWorkStart(String(data.weekly_work_start ?? '월'));
           setWorkEnd(String(data.weekly_work_end ?? '금'));
+          setAnnualLeave(Number(data.annual_leave ?? 15));
+        }
+      })();
+    }
+  };
+
+  // 연차만 단독 저장 함수
+  const handleSaveAnnual = async () => {
+    if (!user) return;
+    setSavingAnnual(true);
+    setAnnualMsg(null);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ annual_leave: annualLeave })
+      .eq('id', user.id);
+    setSavingAnnual(false);
+    if (error) {
+      setAnnualMsg('저장 실패! 다시 시도해주세요.');
+    } else {
+      setAnnualMsg('저장 완료!');
+      // 저장 후 재조회
+      setTimeout(() => setAnnualMsg(null), 1500);
+      (async () => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('annual_leave')
+          .eq('id', user.id)
+          .single();
+        if (!error && data) {
+          setAnnualLeave(Number(data.annual_leave ?? 15));
         }
       })();
     }
   };
 
   return (
-    <aside className="w-full max-w-xs bg-white rounded-xl shadow p-5 flex flex-col gap-4 border">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="font-bold text-lg">주 근무시간</h2>
-        <button onClick={() => setShowSetting(true)} className="p-1 rounded hover:bg-gray-100">
-          <Settings size={20} />
-        </button>
-      </div>
-      <div className="flex flex-col gap-2">
-        <div className="text-sm text-gray-500">설정: <b>{weeklyWorkHours}시간</b> ({workStart}~{workEnd})</div>
-        <div className="text-base">이번 주 누적 근무: <b>{formatHourMin(totalWorked)}</b></div>
-        <div className="text-base">남은 근무: <b>{formatHourMin(remainMin)}</b></div>
-        <div className="text-xs text-gray-400 mt-1">
-          * 점심시간 제외 설정은 출퇴근 이벤트 수정에서 변경 가능
+    <aside className="w-full max-w-xs bg-white rounded-xl shadow p-6 flex flex-col gap-6 border">
+      {/* 상단: 주 근무시간 & 남은 연차 */}
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2 mb-1">
+          <Clock className="w-5 h-5 text-blue-600" />
+          <span className="text-base font-bold text-gray-900">주 근무시간</span>
+          <span className="text-base font-bold text-blue-700 ml-1">{weeklyWorkHours}시간</span>
+          <span className="text-sm text-gray-500 ml-1">({workStart}~{workEnd})</span>
+          <button onClick={() => setShowSetting(true)} className="ml-auto p-1 rounded hover:bg-gray-100">
+            <Settings size={20} className="text-blue-600" />
+          </button>
         </div>
+        <div className="flex items-center gap-2">
+          <CheckCircle className="w-4 h-4 text-green-600" />
+          <span className="text-base font-bold text-gray-900">남은 연차</span>
+          <span className="text-base font-bold text-blue-700 ml-1">{(annualLeave - usedAnnualLeave).toFixed(2)}일</span>
+          <span className="text-sm text-gray-500 ml-1">/ {annualLeave}일</span>
+        </div>
+      </div>
+      <div className="border-t my-2" />
+      {/* 근무시간 ProgressBar */}
+      <div className="flex flex-col gap-3">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <CalendarDays className="w-4 h-4 text-indigo-600" />
+            <span className="font-semibold text-gray-900">이번 주 근무</span>
+            <span className="font-semibold text-indigo-700 ml-1">{formatHourMin(totalWorked)}</span>
+          </div>
+          {/* 근무시간 ProgressBar */}
+          <ProgressBar percent={Math.round((totalWorked / (weeklyWorkHours * 60)) * 100)} color="bg-indigo-500" />
+        </div>
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <MinusCircle className="w-4 h-4 text-rose-600" />
+            <span className="font-semibold text-gray-900">남은 근무</span>
+            <span className="font-semibold text-rose-700 ml-1">{formatHourMin(remainMin)}</span>
+          </div>
+          {/* 남은 근무 ProgressBar (반대 방향) */}
+          <ProgressBar percent={Math.round((remainMin / (weeklyWorkHours * 60)) * 100)} color="bg-rose-500" />
+        </div>
+      </div>
+      <div className="text-xs text-gray-400 mt-1">
+        * 점심시간 제외 설정은 출퇴근 이벤트 수정에서 변경 가능
+      </div>
+      <div className="border-t my-4" />
+      {/* 연차 사용 내역 리스트 */}
+      <div className="mt-2">
+        <div className="flex items-center gap-2 mb-2">
+          <CalendarDays className="w-4 h-4 text-blue-600" />
+          <h3 className="text-base font-bold text-blue-700">연차 사용 내역</h3>
+        </div>
+        {holidayEvents.length === 0 ? (
+          <div className="text-sm text-gray-400 flex items-center gap-2 py-4">
+            <span className="text-2xl">🌱</span>
+            <span>아직 연차를 사용하지 않았어요!</span>
+          </div>
+        ) : (
+          <ul className="space-y-1 max-h-40 overflow-y-auto pr-1 text-sm">
+            {holidayEvents
+              .filter(event => event.leave_type === '1' || event.leave_type === '2' || event.leave_type === '3')
+              .sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime())
+              .map((event) => {
+                const start = new Date(event.start_date)
+                const end = new Date(event.end_date)
+                const isSameDay = start.toDateString() === end.toDateString()
+                const dateStr = isSameDay
+                  ? `${start.getFullYear()}-${(start.getMonth()+1).toString().padStart(2,'0')}-${start.getDate().toString().padStart(2,'0')}`
+                  : `${start.getFullYear()}-${(start.getMonth()+1).toString().padStart(2,'0')}-${start.getDate().toString().padStart(2,'0')} ~ ${end.getFullYear()}-${(end.getMonth()+1).toString().padStart(2,'0')}-${end.getDate().toString().padStart(2,'0')}`
+                // leave_type 숫자 → 한글 변환
+                let typeLabel = '연차';
+                if (event.leave_type === '2') typeLabel = '반차';
+                else if (event.leave_type === '3') typeLabel = '반반차';
+                return (
+                  <li key={event.id} className="flex items-center gap-2 text-sm border-b last:border-b-0 py-1">
+                    <span className="text-gray-700 font-mono min-w-[110px]">{dateStr}</span>
+                    <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-xs font-semibold">{typeLabel}</span>
+                  </li>
+                )
+              })}
+          </ul>
+        )}
       </div>
       {showSetting && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-80 shadow-xl flex flex-col gap-4">
             <h3 className="font-bold text-lg mb-2">주 근무시간 설정</h3>
+            <label className="flex flex-col gap-1">
+              <span>연차(일)</span>
+              <input type="number" min={1} max={50} value={annualLeave} onChange={e => setAnnualLeave(Number(e.target.value))} className="border rounded px-2 py-1" />
+            </label>
             <label className="flex flex-col gap-1">
               <span>주 근무시간(시간)</span>
               <input type="number" min={1} max={100} value={weeklyWorkHours} onChange={e => setWeeklyWorkHours(Number(e.target.value))} className="border rounded px-2 py-1" />

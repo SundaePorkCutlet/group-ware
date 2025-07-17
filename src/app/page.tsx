@@ -5,10 +5,12 @@ import AuthButton from "@/components/auth/AuthButton"
 import AttendanceCard from "@/components/attendance/AttendanceCard"
 import { CalendarDays, MessageSquare, Users, FileText, Settings, BarChart3, UserPlus } from "lucide-react"
 import Link from "next/link"
-import { useAuth } from '@/hooks/useAuth'
+import { useAuthStore } from '@/store/authStore'
 
 export default function HomePage() {
-  const { user, profile, loading } = useAuth()
+  const user = useAuthStore(state => state.user)
+  const profile = useAuthStore(state => state.profile)
+  const loading = false;
   
   return (
     <div className="min-h-screen bg-gray-50">
