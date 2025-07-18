@@ -33,7 +33,7 @@ export default function EventModal({
   const [endDate, setEndDate] = useState('')
   const [endTime, setEndTime] = useState('')
   const [location, setLocation] = useState('')
-  const [eventType, setEventType] = useState<'meeting' | 'deadline' | 'holiday' | 'attendance' | 'other'>('meeting')
+  const [eventType, setEventType] = useState<'meeting' | 'holiday' | 'attendance' | 'other'>('meeting')
   const [visibility, setVisibility] = useState<'personal' | 'company'>('personal')
   const [isAllDay, setIsAllDay] = useState(false)
   const [loading, setSaving] = useState(false)
@@ -318,12 +318,11 @@ export default function EventModal({
             </label>
             <select
               value={eventType}
-              onChange={(e) => isEditing && setEventType(e.target.value as 'meeting' | 'deadline' | 'holiday' | 'attendance' | 'other')}
+              onChange={(e) => isEditing && setEventType(e.target.value as 'meeting' | 'holiday' | 'attendance' | 'other')}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
               disabled={!isEditing}
             >
               <option value="meeting">회의</option>
-              <option value="deadline">마감일</option>
               <option value="holiday">휴가</option>
               <option value="attendance">출퇴근</option>
               <option value="other">기타</option>

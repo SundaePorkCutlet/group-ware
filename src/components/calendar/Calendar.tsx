@@ -7,6 +7,7 @@ import type { Event } from '@/app/calendar/page'
 
 interface CalendarProps {
   events: Event[]
+  transactions: any[]
   onDateClick: (date: Date) => void
   onEventClick: (event: Event) => void
   showPersonalCalendar: boolean
@@ -14,6 +15,8 @@ interface CalendarProps {
   onTogglePersonalCalendar: () => void
   onToggleCompanyCalendar: () => void
   userHasCompany: boolean
+  onShowAllEventsForDate?: (date: Date, events: Event[]) => void
+  onTransactionClick?: (tx: any, date: Date) => void
 }
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -24,7 +27,6 @@ const MONTHS = [
 
 const EVENT_TYPE_COLORS = {
   meeting: 'bg-blue-500',
-  deadline: 'bg-red-500',
   holiday: 'bg-green-500',
   personal: 'bg-purple-500',
   company: 'bg-orange-500',
@@ -34,13 +36,16 @@ const EVENT_TYPE_COLORS = {
 
 export default function Calendar({ 
   events, 
+  transactions,
   onDateClick, 
   onEventClick, 
   showPersonalCalendar, 
   showCompanyCalendar, 
   onTogglePersonalCalendar, 
   onToggleCompanyCalendar,
-  userHasCompany 
+  userHasCompany,
+  onShowAllEventsForDate,
+  onTransactionClick
 }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
 
@@ -74,6 +79,16 @@ export default function Calendar({
     })
   }
 
+  const getTransactionsForDate = (date: Date) => {
+    return transactions.filter(tx => {
+      const txDate = new Date(tx.date);
+      return (
+        txDate.getFullYear() === date.getFullYear() &&
+        txDate.getMonth() === date.getMonth() &&
+        txDate.getDate() === date.getDate()
+      );
+    });
+  };
 
 
   const formatTime = (dateString: string) => {
@@ -179,6 +194,7 @@ export default function Calendar({
         <div className="grid grid-cols-7 gap-1">
           {days.map((date) => {
             const dayEvents = getEventsForDate(date)
+            const dayTransactions = getTransactionsForDate(date);
 
             const isCurrentMonthDate = isCurrentMonth(date)
             const isTodayDate = isToday(date)
@@ -232,7 +248,7 @@ export default function Calendar({
                         created_by: clockIn?.created_by || clockOut?.created_by || '',
                         department_id: '',
                         is_all_day: false,
-                        event_type: 'personal' as const,
+                        event_type: 'attendance' as const,
                         visibility: 'personal' as const,
                         created_at: clockIn?.created_at || clockOut?.created_at || '',
                         updated_at: clockIn?.updated_at || clockOut?.updated_at || '',
@@ -316,43 +332,39 @@ export default function Calendar({
                     
                     if (displayCount > maxEvents) {
                       return (
-                        <div className="text-xs text-gray-500 text-center">
+                        <span
+                          className="block text-xs text-gray-500 cursor-pointer hover:underline mt-1"
+                          onClick={e => {
+                            e.stopPropagation();
+                            onShowAllEventsForDate && onShowAllEventsForDate(date, dayEvents);
+                          }}
+                        >
                           +{displayCount - maxEvents}개 더
-                        </div>
+                        </span>
                       )
                     }
                     return null
                   })()}
                 </div>
+
+                {dayTransactions.map(tx => (
+                  <div
+                    key={tx.id}
+                    className={`text-xs mt-1 px-2 py-1 rounded ${
+                      tx.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    } cursor-pointer`}
+                    title={tx.memo}
+                    onClick={e => {
+                      e.stopPropagation();
+                      onTransactionClick && onTransactionClick(tx, date);
+                    }}
+                  >
+                    {tx.type === 'income' ? '+' : '-'}{tx.amount}원 {tx.category && `(${tx.category})`}
+                  </div>
+                ))}
               </div>
             )
           })}
-        </div>
-      </div>
-
-      {/* Legend */}
-      <div className="px-6 pb-6">
-        <div className="flex flex-wrap gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-500 rounded"></div>
-            <span>회의</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-red-500 rounded"></div>
-            <span>마감일</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-500 rounded"></div>
-            <span>휴일</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-purple-500 rounded"></div>
-            <span>개인</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-gray-500 rounded"></div>
-            <span>기타</span>
-          </div>
         </div>
       </div>
     </div>
