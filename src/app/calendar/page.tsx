@@ -23,7 +23,7 @@ export interface Event {
   created_by: string
   department_id?: string
   is_all_day: boolean
-  event_type: 'meeting' | 'deadline' | 'holiday' | 'personal' | 'company' | 'attendance' | 'other'
+  event_type: 'meeting' | 'deadline' | 'holiday' | 'attendance' | 'other'
   visibility: 'personal' | 'company'
   created_at: string
   updated_at: string
@@ -45,6 +45,7 @@ export default function CalendarPage() {
   const [attendanceDate, setAttendanceDate] = useState('')
   const [showPersonalCalendar, setShowPersonalCalendar] = useState(true)
   const [showCompanyCalendar, setShowCompanyCalendar] = useState(true)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
   const supabase = createClient()
 
   useEffect(() => {
@@ -84,6 +85,8 @@ export default function CalendarPage() {
     setShowEventModal(false)
     setEditingEvent(null)
     setSelectedDate(null)
+    // WorkSummarySidebar 새로고침 트리거
+    setRefreshTrigger(prev => prev + 1)
   }
 
   const handleDateClick = (date: Date) => {
@@ -188,7 +191,7 @@ export default function CalendarPage() {
             
             {/* Work Summary Sidebar */}
             <div className="w-80">
-              <WorkSummarySidebar />
+              <WorkSummarySidebar refreshTrigger={refreshTrigger} />
             </div>
           </div>
         )}
@@ -219,9 +222,11 @@ export default function CalendarPage() {
           }}
           onDelete={() => {
             fetchEvents()
+            setRefreshTrigger(prev => prev + 1)
           }}
           onSave={() => {
             fetchEvents()
+            setRefreshTrigger(prev => prev + 1)
           }}
           event={editingEvent}
         />
@@ -238,6 +243,7 @@ export default function CalendarPage() {
           }}
           onRefresh={() => {
             fetchEvents()
+            setRefreshTrigger(prev => prev + 1)
           }}
           events={attendanceEvents}
           date={attendanceDate}

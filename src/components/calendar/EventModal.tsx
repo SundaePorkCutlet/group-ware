@@ -33,7 +33,7 @@ export default function EventModal({
   const [endDate, setEndDate] = useState('')
   const [endTime, setEndTime] = useState('')
   const [location, setLocation] = useState('')
-  const [eventType, setEventType] = useState<'meeting' | 'holiday' | 'attendance' | 'other'>('meeting')
+  const [eventType, setEventType] = useState<'meeting' | 'deadline' | 'holiday' | 'attendance' | 'other'>('meeting')
   const [visibility, setVisibility] = useState<'personal' | 'company'>('personal')
   const [isAllDay, setIsAllDay] = useState(false)
   const [loading, setSaving] = useState(false)
@@ -94,8 +94,8 @@ export default function EventModal({
         setStartTime('09:00')
         setEndTime('10:00')
       }
-      // 모달이 열릴 때마다 편집모드 해제
-      if (isOpen) setIsEditing(false);
+      // 새 일정이면 편집 모드로, 기존 일정이면 읽기 전용으로 시작
+      setIsEditing(!editingEvent);
     }
   }, [isOpen, editingEvent, selectedDate])
 
@@ -293,24 +293,24 @@ export default function EventModal({
   return (
     <div 
       className="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-100">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/50 rounded-t-xl">
           <h2 className="text-xl font-semibold text-gray-900">
             {editingEvent ? '일정 상세' : '새 일정'}
           </h2>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-5">
           {/* Event Type */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -318,11 +318,12 @@ export default function EventModal({
             </label>
             <select
               value={eventType}
-              onChange={(e) => isEditing && setEventType(e.target.value as 'meeting' | 'holiday' | 'attendance' | 'other')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              onChange={(e) => isEditing && setEventType(e.target.value as 'meeting' | 'deadline' | 'holiday' | 'attendance' | 'other')}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
               disabled={!isEditing}
             >
               <option value="meeting">회의</option>
+              <option value="deadline">마감일</option>
               <option value="holiday">휴가</option>
               <option value="attendance">출퇴근</option>
               <option value="other">기타</option>
@@ -338,7 +339,7 @@ export default function EventModal({
               <select
                 value={holidayType}
                 onChange={e => isEditing && setHolidayType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
                 disabled={!isEditing}
               >
                 {holidayTypes.map(type => (
@@ -424,7 +425,7 @@ export default function EventModal({
                 type="date"
                 value={startDate}
                 onChange={e => isEditing && setStartDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
                 readOnly={!isEditing}
                 disabled={!isEditing}
               />
@@ -559,29 +560,56 @@ export default function EventModal({
             </div>
           )}
 
-          {/* 편집/저장/취소 버튼 */}
-          <div className="flex justify-end gap-2 mt-6">
+          {/* 편집/저장/취소/삭제 버튼 */}
+          <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
             {!isEditing ? (
-              <button
-                className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
-                onClick={() => setIsEditing(true)}
-              >
-                편집
-              </button>
+              <div className="flex gap-3">
+                <button
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  편집
+                </button>
+                {editingEvent && (
+                  <button
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                    onClick={handleDelete}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2" />
+                    ) : (
+                      <Trash2 className="w-4 h-4 mr-2" />
+                    )}
+                    삭제
+                  </button>
+                )}
+              </div>
             ) : (
-              <>
-                <Button onClick={handleSave} disabled={loading}>
+              <div className="flex gap-3">
+                <button
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+                  onClick={() => setIsEditing(false)}
+                  disabled={loading}
+                >
+                  취소
+                </button>
+                <button
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50"
+                  onClick={handleSave}
+                  disabled={loading}
+                >
                   {loading ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                   ) : (
                     <Save className="w-4 h-4 mr-2" />
                   )}
                   저장
-                </Button>
-                <Button variant="outline" onClick={() => setIsEditing(false)} disabled={loading}>
-                  취소
-                </Button>
-              </>
+                </button>
+              </div>
             )}
           </div>
         </div>

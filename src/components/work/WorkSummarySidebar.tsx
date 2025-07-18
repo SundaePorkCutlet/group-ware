@@ -31,7 +31,11 @@ function ProgressBar({ percent, color = 'bg-blue-500', height = 'h-2', bg = 'bg-
   )
 }
 
-export default function WorkSummarySidebar() {
+interface WorkSummarySidebarProps {
+  refreshTrigger?: number;
+}
+
+export default function WorkSummarySidebar({ refreshTrigger = 0 }: WorkSummarySidebarProps) {
   const user = useAuthStore(state => state.user);
   const profile = useAuthStore(state => state.profile);
   const supabase = createClient();
@@ -114,7 +118,7 @@ export default function WorkSummarySidebar() {
         setHolidayEvents((holidayData as unknown as HolidayEvent[]) ?? []);
       }
     })();
-  }, [user, workStart, workEnd]);
+  }, [user, workStart, workEnd, refreshTrigger]);
 
   // 누적 근무시간 계산 (events 테이블만 사용, 각 날짜별 점심시간 제외 설정 적용)
   useEffect(() => {
@@ -199,9 +203,13 @@ export default function WorkSummarySidebar() {
     const yearStart = new Date(now.getFullYear(), 0, 1);
     const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
     let used = 0;
-    console.log('holidayEvents:', holidayEvents); // leave_type 타입/값 확인용
+    
     holidayEvents
-      .filter(event => event.leave_type === '1' || event.leave_type === '2' || event.leave_type === '3')
+      .filter(event => {
+        // leave_type이 문자열이든 숫자든 모두 처리
+        const leaveType = String(event.leave_type);
+        return leaveType === '1' || leaveType === '2' || leaveType === '3';
+      })
       .forEach((event) => {
         // 올해 내 휴가만 계산
         const start = new Date(event.start_date);
@@ -210,11 +218,27 @@ export default function WorkSummarySidebar() {
         const realStart = start < yearStart ? yearStart : start;
         const realEnd = end > yearEnd ? yearEnd : end;
         const dayMs = 24 * 60 * 60 * 1000;
-        const days = Math.round((realEnd.getTime() - realStart.getTime()) / dayMs) + 1;
+        // 날짜 차이 계산 (시간은 무시하고 날짜만)
+        const startDate = new Date(realStart.getFullYear(), realStart.getMonth(), realStart.getDate());
+        const endDate = new Date(realEnd.getFullYear(), realEnd.getMonth(), realEnd.getDate());
+        const days = Math.round((endDate.getTime() - startDate.getTime()) / dayMs) + 1;
         let dayValue = 1;
-        if (event.leave_type === '2') dayValue = 0.5;
-        else if (event.leave_type === '3') dayValue = 0.25;
-        used += days * dayValue;
+        const leaveType = String(event.leave_type);
+        if (leaveType === '2') dayValue = 0.5;
+        else if (leaveType === '3') dayValue = 0.25;
+        const eventUsed = days * dayValue;
+        used += eventUsed;
+        
+        console.log('연차 계산:', {
+          title: event.description,
+          start: start.toISOString(),
+          end: end.toISOString(),
+          days,
+          leaveType,
+          dayValue,
+          eventUsed,
+          totalUsed: used
+        });
       });
     setUsedAnnualLeave(used);
   }, [holidayEvents]);
@@ -228,6 +252,118 @@ export default function WorkSummarySidebar() {
 
   // 남은 근무시간(분)
   const remainMin = Math.max(weeklyWorkHours * 60 - totalWorked, 0);
+
+  // 오늘 퇴근 가능 시간 계산
+  const calculateTodayLeaveTime = () => {
+    const now = new Date();
+    const today = now.getDay(); // 0: 일요일, 1: 월요일, ..., 5: 금요일
+    const weekDays = ['일','월','화','수','목','금','토'];
+    const todayName = weekDays[today];
+    
+    // 오늘이 근무일인지 확인
+    const startIdx = weekDays.indexOf(workStart);
+    const endIdx = weekDays.indexOf(workEnd);
+    const isWorkDay = today >= startIdx && today <= endIdx;
+    
+    if (!isWorkDay) return null;
+    
+    // 오늘 출근 기록 찾기
+    const todayClockIn = attendanceEvents.find(event => {
+      const eventDate = new Date(event.start_date);
+      return event.title === '🌅 출근' && 
+             eventDate.toDateString() === now.toDateString();
+    });
+    
+    if (!todayClockIn) return null;
+    
+    // 오늘 이미 퇴근했는지 확인
+    const todayClockOut = attendanceEvents.find(event => {
+      const eventDate = new Date(event.start_date);
+      return event.title === '🌆 퇴근' && 
+             eventDate.toDateString() === now.toDateString();
+    });
+    
+    if (todayClockOut) return null; // 이미 퇴근함
+    
+    // 오늘 근무한 시간 계산
+    const clockInTime = new Date(todayClockIn.start_date);
+    const workedToday = (now.getTime() - clockInTime.getTime()) / 60000; // 분 단위
+    
+    // 점심시간 제외 여부 확인
+    const excludeLunch = todayClockIn.exclude_lunch_time ?? true;
+    const actualWorkedToday = excludeLunch ? Math.max(workedToday - 60, 0) : workedToday;
+    
+    // 이번 주 남은 근무시간 계산 (오늘 제외)
+    const weekDaysWorked = ['일','월','화','수','목','금','토'];
+    const startIdx2 = weekDaysWorked.indexOf(workStart);
+    const endIdx2 = weekDaysWorked.indexOf(workEnd);
+    const workDays = ((endIdx2 - startIdx2 + 7) % 7) + 1;
+    
+    // 이번 주 시작/끝 계산
+    let weekStart = new Date(now);
+    let weekEnd = new Date(now);
+    weekStart.setDate(now.getDate() - ((now.getDay() + 7 - startIdx2) % 7));
+    weekStart.setHours(0,0,0,0);
+    weekEnd.setDate(weekStart.getDate() + ((endIdx2 - startIdx2 + 7) % 7));
+    weekEnd.setHours(23,59,59,999);
+    
+    // 이번 주 다른 날들 근무시간 계산
+    let otherDaysWorked = 0;
+    attendanceEvents.forEach(event => {
+      const eventDate = new Date(event.start_date);
+      if (eventDate.toDateString() === now.toDateString()) return; // 오늘 제외
+      if (eventDate < weekStart || eventDate > weekEnd) return; // 이번 주가 아니면 제외
+      
+      if (event.title === '🌅 출근') {
+        const clockIn = eventDate;
+        const clockOut = attendanceEvents.find(e => 
+          e.title === '🌆 퇴근' && 
+          new Date(e.start_date).toDateString() === eventDate.toDateString()
+        );
+        
+        if (clockOut) {
+          const diff = (new Date(clockOut.start_date).getTime() - clockIn.getTime()) / 60000;
+          const excludeLunch = event.exclude_lunch_time ?? true;
+          otherDaysWorked += excludeLunch ? Math.max(diff - 60, 0) : diff;
+        }
+      }
+    });
+    
+    // 이번 주 휴가로 인한 근무시간 추가
+    const weeklyHolidays = holidayEvents.filter(event => {
+      const start = new Date(event.start_date);
+      const end = new Date(event.end_date);
+      return end >= weekStart && start <= weekEnd && ['1','2','3'].includes(String(event.leave_type));
+    });
+    
+    let holidayWorkTime = 0;
+    weeklyHolidays.forEach(event => {
+      const start = new Date(event.start_date) < weekStart ? weekStart : new Date(event.start_date);
+      const end = new Date(event.end_date) > weekEnd ? weekEnd : new Date(event.end_date);
+      const dayMs = 24 * 60 * 60 * 1000;
+      const days = Math.round((end.getTime() - start.getTime()) / dayMs) + 1;
+      let dayValue = 1;
+      if (String(event.leave_type) === '2') dayValue = 0.5;
+      else if (String(event.leave_type) === '3') dayValue = 0.25;
+      holidayWorkTime += days * dayValue * (weeklyWorkHours * 60 / workDays);
+    });
+    
+    otherDaysWorked += holidayWorkTime;
+    
+    // 이번 주 목표 근무시간에서 다른 날들 근무시간을 뺀 값이 오늘 남은 근무시간
+    const todayRemaining = Math.max(weeklyWorkHours * 60 - otherDaysWorked - actualWorkedToday, 0);
+    
+    // 퇴근 가능 시간 계산
+    const leaveTime = new Date(now);
+    leaveTime.setMinutes(leaveTime.getMinutes() + todayRemaining);
+    
+    return {
+      time: leaveTime,
+      remaining: todayRemaining
+    };
+  };
+  
+  const todayLeaveInfo = calculateTodayLeaveTime();
 
   // 저장 함수
   const handleSave = async () => {
@@ -342,6 +478,28 @@ export default function WorkSummarySidebar() {
       <div className="text-xs text-gray-400 mt-1">
         * 점심시간 제외 설정은 출퇴근 이벤트 수정에서 변경 가능
       </div>
+      
+      {/* 오늘 퇴근 가능 시간 표시 */}
+      {todayLeaveInfo && (
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4 mt-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="w-5 h-5 text-green-600" />
+            <span className="font-bold text-green-800">오늘 퇴근 가능 시간</span>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-700 mb-1">
+              {todayLeaveInfo.time.toLocaleTimeString('ko-KR', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false 
+              })}
+            </div>
+            <div className="text-sm text-green-600">
+              남은 근무시간: {formatHourMin(todayLeaveInfo.remaining)}
+            </div>
+          </div>
+        </div>
+      )}
       <div className="border-t my-4" />
       {/* 연차 사용 내역 리스트 */}
       <div className="mt-2">
@@ -357,7 +515,11 @@ export default function WorkSummarySidebar() {
         ) : (
           <ul className="space-y-1 max-h-40 overflow-y-auto pr-1 text-sm">
             {holidayEvents
-              .filter(event => event.leave_type === '1' || event.leave_type === '2' || event.leave_type === '3')
+              .filter(event => {
+                // leave_type이 문자열이든 숫자든 모두 처리
+                const leaveType = String(event.leave_type);
+                return leaveType === '1' || leaveType === '2' || leaveType === '3';
+              })
               .sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime())
               .map((event) => {
                 const start = new Date(event.start_date)
