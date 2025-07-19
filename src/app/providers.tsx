@@ -1,21 +1,13 @@
-'use client'
-import { useEffect } from 'react'
-import { useAuthStore } from '@/store/authStore'
-import { createClient } from '@/lib/supabase'
+"use client";
+import { useEffect } from "react";
+import { useAuthStore } from "@/store/authStore";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  const setUser = useAuthStore(state => state.setUser)
-  const fetchProfile = useAuthStore(state => state.fetchProfile)
+  const initializeAuth = useAuthStore((state) => state.initializeAuth);
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser(session.user)
-        fetchProfile(session.user.id)
-      }
-    })
-  }, [setUser, fetchProfile])
+    initializeAuth();
+  }, [initializeAuth]);
 
-  return <>{children}</>
-} 
+  return <>{children}</>;
+}
