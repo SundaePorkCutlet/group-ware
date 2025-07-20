@@ -61,7 +61,7 @@ export default function BiometricAuth({
     setError(null);
 
     try {
-      console.log("생체 인식 등록 시작...");
+      alert("🔍 생체 인식 등록 시작...\n\n1단계: 서버 연결 확인 중...");
 
       // 서버에서 등록 옵션 가져오기
       const response = await fetch("/api/biometric/register", {
@@ -82,11 +82,17 @@ export default function BiometricAuth({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "생체 인식 등록 준비 실패");
+        throw new Error(
+          `서버 오류 (${response.status}): ${
+            errorData.error || "알 수 없는 오류"
+          }`
+        );
       }
 
       const options = await response.json();
-      console.log("등록 옵션 받음:", options);
+      alert(
+        "✅ 1단계 완료: 서버 연결 성공!\n\n2단계: Face ID/지문 인식 등록 시작...\n\n기기에서 생체 인식 등록 창이 나타날 것입니다."
+      );
 
       // 생체 인식 등록
       const credential = await navigator.credentials.create({
@@ -116,7 +122,9 @@ export default function BiometricAuth({
         throw new Error("생체 인식 등록이 취소되었습니다");
       }
 
-      console.log("생체 인식 자격 증명 생성 완료:", credential);
+      alert(
+        "✅ 2단계 완료: Face ID/지문 인식 등록 성공!\n\n3단계: 서버에 저장 중..."
+      );
 
       // 서버에 등록 완료 알림
       const registerResponse = await fetch("/api/biometric/register", {
@@ -137,11 +145,17 @@ export default function BiometricAuth({
 
       if (!registerResponse.ok) {
         const errorData = await registerResponse.json();
-        throw new Error(errorData.error || "생체 인식 등록 완료 실패");
+        throw new Error(
+          `저장 오류 (${registerResponse.status}): ${
+            errorData.error || "알 수 없는 오류"
+          }`
+        );
       }
 
       const result = await registerResponse.json();
-      console.log("등록 완료:", result);
+      alert(
+        "✅ 3단계 완료: 서버 저장 성공!\n\n🎉 Face ID/지문 인식 등록이 완료되었습니다!\n\n이제 생체 인식으로 로그인할 수 있습니다."
+      );
 
       localStorage.setItem("biometric-registered", "true");
       setIsRegistered(true);
@@ -254,6 +268,10 @@ export default function BiometricAuth({
     setError(null);
 
     try {
+      alert(
+        "🔍 Face ID/지문 인식 로그인 시작...\n\n기기에서 생체 인식 인증 창이 나타날 것입니다."
+      );
+
       // 서버에서 인증 옵션 가져오기
       const response = await fetch("/api/biometric/authenticate", {
         method: "POST",
@@ -282,6 +300,8 @@ export default function BiometricAuth({
         throw new Error("생체 인식 인증이 취소되었습니다");
       }
 
+      alert("✅ Face ID/지문 인식 인증 성공!\n\n서버에 인증 정보를 전송 중...");
+
       // 서버에 인증 완료 알림
       const authResponse = await fetch("/api/biometric/authenticate", {
         method: "PUT",
@@ -302,6 +322,7 @@ export default function BiometricAuth({
       // Supabase 세션 설정
       await supabase.auth.setSession(session);
 
+      alert("🎉 생체 인식 로그인 완료!");
       onSuccess?.();
     } catch (error) {
       console.error("생체 인식 인증 실패:", error);
@@ -331,6 +352,7 @@ export default function BiometricAuth({
       });
 
       localStorage.removeItem("biometric-registered");
+      localStorage.removeItem("biometric-credential"); // 간단 모드 데이터도 제거
       setIsRegistered(false);
     } catch (error) {
       console.error("생체 인식 등록 해제 실패:", error);
@@ -383,55 +405,6 @@ export default function BiometricAuth({
 
       // 모바일에서 바로 확인할 수 있도록 alert
       alert(`❌ API 테스트 실패!\n\n오류 내용:\n${errorMessage}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // 간단한 생체 인식 등록 (로컬 스토리지만 사용)
-  const simpleRegister = async () => {
-    if (!user) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // 간단한 생체 인식 등록 (실제 생체 인식 없이)
-      const simpleCredential = {
-        id: "simple-biometric-" + Date.now(),
-        type: "public-key",
-        response: {
-          publicKey: new ArrayBuffer(32),
-          signCount: 0,
-        },
-      };
-
-      // 로컬 스토리지에 저장
-      const localData = {
-        userId: user.id,
-        credentialId: simpleCredential.id,
-        publicKey: "simple-key",
-        signCount: 0,
-        createdAt: new Date().toISOString(),
-        mode: "simple",
-      };
-
-      localStorage.setItem("biometric-credential", JSON.stringify(localData));
-      localStorage.setItem("biometric-registered", "true");
-
-      setIsRegistered(true);
-      onSuccess?.();
-
-      alert(
-        "✅ 간단한 생체 인식 등록 완료!\n\n이제 생체 인식으로 로그인할 수 있습니다."
-      );
-    } catch (error) {
-      console.error("간단한 등록 실패:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "등록에 실패했습니다";
-      setError(errorMessage);
-
-      alert(`❌ 간단한 등록 실패!\n\n오류 내용:\n${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
@@ -539,20 +512,6 @@ export default function BiometricAuth({
                 <span className="mr-2">🔍</span>
               )}
               API 연결 테스트
-            </Button>
-
-            <Button
-              onClick={simpleRegister}
-              disabled={isLoading}
-              variant="outline"
-              className="w-full text-green-600 border-green-300 hover:bg-green-50"
-            >
-              {isLoading ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600 mr-2" />
-              ) : (
-                <span className="mr-2">🔑</span>
-              )}
-              간단한 생체 인식 등록
             </Button>
           </>
         ) : (
