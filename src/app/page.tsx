@@ -1,17 +1,26 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import AuthButton from "@/components/auth/AuthButton"
-import AttendanceCard from "@/components/attendance/AttendanceCard"
-import { CalendarDays, MessageSquare, Users, FileText, Settings, BarChart3, UserPlus } from "lucide-react"
-import Link from "next/link"
-import { useAuthStore } from '@/store/authStore'
+import { Button } from "@/components/ui/button";
+import AuthButton from "@/components/auth/AuthButton";
+import AttendanceCard from "@/components/attendance/AttendanceCard";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+import {
+  CalendarDays,
+  MessageSquare,
+  Users,
+  FileText,
+  Settings,
+  BarChart3,
+  UserPlus,
+} from "lucide-react";
+import Link from "next/link";
+import { useAuthStore } from "@/store/authStore";
 
 export default function HomePage() {
-  const user = useAuthStore(state => state.user)
-  const profile = useAuthStore(state => state.profile)
+  const user = useAuthStore((state) => state.user);
+  const profile = useAuthStore((state) => state.profile);
   const loading = false;
-  
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -45,7 +54,10 @@ export default function HomePage() {
               </>
             ) : user && profile ? (
               <>
-                {profile.full_name ? `${profile.full_name}님` : `${profile.email}님`} 안녕하세요! <span className="emoji">👋</span>
+                {profile.full_name
+                  ? `${profile.full_name}님`
+                  : `${profile.email}님`}{" "}
+                안녕하세요! <span className="emoji">👋</span>
               </>
             ) : (
               <>
@@ -81,7 +93,9 @@ export default function HomePage() {
             </div>
             <p className="text-gray-600 mb-4">일정과 회의를 관리하세요</p>
             <Link href="/calendar">
-              <Button className="w-full" variant="outline">일정 보기</Button>
+              <Button className="w-full" variant="outline">
+                일정 보기
+              </Button>
             </Link>
           </div>
 
@@ -91,8 +105,12 @@ export default function HomePage() {
               <FileText className="w-8 h-8 text-purple-600 mr-3" />
               <h3 className="text-xl font-semibold text-gray-900">파일 공유</h3>
             </div>
-            <p className="text-gray-600 mb-4">문서와 파일을 안전하게 공유하세요</p>
-            <Button className="w-full" variant="outline">파일 업로드</Button>
+            <p className="text-gray-600 mb-4">
+              문서와 파일을 안전하게 공유하세요
+            </p>
+            <Button className="w-full" variant="outline">
+              파일 업로드
+            </Button>
           </div>
 
           {/* 팀 관리 / 회사 가입 - 인증 상태에 따라 다르게 표시 */}
@@ -102,7 +120,9 @@ export default function HomePage() {
               <>
                 <div className="flex items-center mb-4">
                   <Users className="w-8 h-8 text-gray-400 mr-3" />
-                  <h3 className="text-xl font-semibold text-gray-900">팀 관리</h3>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    팀 관리
+                  </h3>
                 </div>
                 <p className="text-gray-600 mb-4">로그인 후 팀에 참여하세요</p>
                 <Button className="w-full" variant="outline" disabled>
@@ -114,9 +134,13 @@ export default function HomePage() {
               <>
                 <div className="flex items-center mb-4">
                   <UserPlus className="w-8 h-8 text-blue-600 mr-3" />
-                  <h3 className="text-xl font-semibold text-gray-900">회사 가입하기</h3>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    회사 가입하기
+                  </h3>
                 </div>
-                <p className="text-gray-600 mb-4">회사 코드를 입력하여 팀에 참여하세요</p>
+                <p className="text-gray-600 mb-4">
+                  회사 코드를 입력하여 팀에 참여하세요
+                </p>
                 <Link href="/team">
                   <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                     가입 코드 입력
@@ -128,11 +152,15 @@ export default function HomePage() {
               <>
                 <div className="flex items-center mb-4">
                   <Users className="w-8 h-8 text-orange-600 mr-3" />
-                  <h3 className="text-xl font-semibold text-gray-900">팀 관리</h3>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    팀 관리
+                  </h3>
                 </div>
                 <p className="text-gray-600 mb-4">조직과 팀원을 관리하세요</p>
                 <Link href="/team">
-                  <Button className="w-full" variant="outline">팀 보기</Button>
+                  <Button className="w-full" variant="outline">
+                    팀 보기
+                  </Button>
                 </Link>
               </>
             ) : (
@@ -152,7 +180,9 @@ export default function HomePage() {
               <h3 className="text-xl font-semibold text-gray-900">분석</h3>
             </div>
             <p className="text-gray-600 mb-4">업무 현황을 한눈에 확인하세요</p>
-            <Button className="w-full" variant="outline">분석 보기</Button>
+            <Button className="w-full" variant="outline">
+              분석 보기
+            </Button>
           </div>
 
           {/* 새 기능 추가 */}
@@ -161,7 +191,9 @@ export default function HomePage() {
               <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
                 <span className="text-white text-2xl">+</span>
               </div>
-              <h3 className="text-lg font-semibold text-blue-900 mb-2">새 기능</h3>
+              <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                새 기능
+              </h3>
               <p className="text-blue-700 text-sm">곧 추가될 예정입니다</p>
             </div>
           </div>
@@ -175,11 +207,16 @@ export default function HomePage() {
           <div className="p-6">
             <div className="text-center text-gray-500 py-8">
               <p>아직 활동 내역이 없습니다.</p>
-              <p className="text-sm mt-1">로그인하시면 최근 활동을 확인할 수 있습니다.</p>
+              <p className="text-sm mt-1">
+                로그인하시면 최근 활동을 확인할 수 있습니다.
+              </p>
             </div>
           </div>
         </div>
       </main>
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
     </div>
-  )
+  );
 }

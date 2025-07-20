@@ -1,0 +1,21 @@
+{
+  "name": "그룹웨어 - 출퇴근 관리",
+  "short_name": "그룹웨어",
+  "description": "회사 출퇴근과 일정을 관리하는 그룹웨어 앱",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable any"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "ko",
+  "dir": "ltr"
+}
