@@ -135,15 +135,19 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { userId, credential } = body;
 
-    if (!userId || !credential) {
+    if (!credential) {
       return NextResponse.json(
-        { error: "필수 데이터가 누락되었습니다" },
+        { error: "생체 인식 자격 증명이 누락되었습니다" },
         { status: 400 }
       );
     }
 
-    console.log("생체 인식 자격 증명 저장 시작:", {
-      userId,
+    // 인증된 사용자의 ID를 사용 (클라이언트에서 보낸 userId 대신)
+    const authenticatedUserId = user.id;
+
+    console.log("🔍 생체 인식 자격 증명 저장 시작:", {
+      originalUserId: userId,
+      authenticatedUserId: authenticatedUserId,
       credentialId: credential.id,
     });
 
@@ -151,7 +155,7 @@ export async function PUT(request: NextRequest) {
     const { error: insertError } = await supabase
       .from("biometric_credentials")
       .insert({
-        user_id: userId,
+        user_id: authenticatedUserId, // 인증된 사용자 ID 사용
         credential_id: credential.id,
         public_key: Buffer.from(credential.response.publicKey).toString(
           "base64"
@@ -181,7 +185,7 @@ export async function PUT(request: NextRequest) {
           message: "생체 인식이 등록되었습니다 (로컬 모드)",
           mode: "local",
           credentialData: {
-            userId,
+            userId: authenticatedUserId, // 인증된 사용자 ID 사용
             credentialId: credential.id,
             publicKey: Buffer.from(credential.response.publicKey).toString(
               "base64"

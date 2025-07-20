@@ -138,7 +138,6 @@ export default function BiometricAuth({
           }`,
         },
         body: JSON.stringify({
-          userId: user.id,
           credential: credential,
         }),
       });
