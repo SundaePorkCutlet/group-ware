@@ -161,33 +161,34 @@ export async function PUT(request: NextRequest) {
       });
 
     if (insertError) {
-      console.error("생체 인식 자격 증명 저장 오류:", insertError);
+      console.error("❌ 생체 인식 자격 증명 저장 오류:", {
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code,
+      });
 
-      // 테이블이 없는 경우 - 로컬 스토리지만 사용
+      // 테이블이 없는 경우 - 클라이언트에서 로컬 스토리지 사용하도록 안내
       if (
         insertError.message.includes(
           'relation "biometric_credentials" does not exist'
         )
       ) {
-        console.log("⚠️ 테이블이 없으므로 로컬 스토리지만 사용");
-
-        // 로컬 스토리지에 저장
-        const localData = {
-          userId,
-          credentialId: credential.id,
-          publicKey: Buffer.from(credential.response.publicKey).toString(
-            "base64"
-          ),
-          signCount: credential.response.signCount,
-          createdAt: new Date().toISOString(),
-        };
-
-        localStorage.setItem("biometric-credential", JSON.stringify(localData));
+        console.log("⚠️ 테이블이 없으므로 클라이언트에서 로컬 스토리지 사용");
 
         return NextResponse.json({
           success: true,
           message: "생체 인식이 등록되었습니다 (로컬 모드)",
           mode: "local",
+          credentialData: {
+            userId,
+            credentialId: credential.id,
+            publicKey: Buffer.from(credential.response.publicKey).toString(
+              "base64"
+            ),
+            signCount: credential.response.signCount,
+            createdAt: new Date().toISOString(),
+          },
         });
       }
 
@@ -195,6 +196,7 @@ export async function PUT(request: NextRequest) {
         {
           error: "생체 인식 등록에 실패했습니다",
           details: insertError.message,
+          code: insertError.code,
         },
         { status: 500 }
       );

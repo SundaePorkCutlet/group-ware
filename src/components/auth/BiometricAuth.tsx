@@ -153,9 +153,21 @@ export default function BiometricAuth({
       }
 
       const result = await registerResponse.json();
-      alert(
-        "✅ 3단계 완료: 서버 저장 성공!\n\n🎉 Face ID/지문 인식 등록이 완료되었습니다!\n\n이제 생체 인식으로 로그인할 수 있습니다."
-      );
+
+      // 로컬 모드인 경우 클라이언트에서 로컬 스토리지에 저장
+      if (result.mode === "local" && result.credentialData) {
+        localStorage.setItem(
+          "biometric-credential",
+          JSON.stringify(result.credentialData)
+        );
+        alert(
+          "✅ 3단계 완료: 로컬 저장 성공!\n\n🎉 Face ID/지문 인식 등록이 완료되었습니다!\n\n(로컬 모드로 저장되었습니다)"
+        );
+      } else {
+        alert(
+          "✅ 3단계 완료: 서버 저장 성공!\n\n🎉 Face ID/지문 인식 등록이 완료되었습니다!"
+        );
+      }
 
       localStorage.setItem("biometric-registered", "true");
       setIsRegistered(true);
