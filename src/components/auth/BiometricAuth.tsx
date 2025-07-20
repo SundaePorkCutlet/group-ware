@@ -333,6 +333,54 @@ export default function BiometricAuth({
     }
   };
 
+  // 간단한 API 테스트
+  const testAPI = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // 1단계: 등록 준비 API 테스트
+      const response = await fetch("/api/biometric/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${
+            (
+              await supabase.auth.getSession()
+            ).data.session?.access_token
+          }`,
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          email: user.email,
+        }),
+      });
+
+      const responseText = await response.text();
+
+      if (!response.ok) {
+        throw new Error(`API 오류 (${response.status}): ${responseText}`);
+      }
+
+      const options = JSON.parse(responseText);
+
+      // 성공 메시지 표시
+      alert(
+        `✅ API 테스트 성공!\n\n응답 내용:\n${JSON.stringify(options, null, 2)}`
+      );
+    } catch (error) {
+      console.error("API 테스트 실패:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "알 수 없는 오류";
+      setError(errorMessage);
+
+      // 모바일에서 바로 확인할 수 있도록 alert
+      alert(`❌ API 테스트 실패!\n\n오류 내용:\n${errorMessage}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (isSupported === null) {
     return (
       <div className="flex items-center justify-center p-4">
@@ -371,9 +419,24 @@ export default function BiometricAuth({
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-          <div className="flex items-center">
-            <XCircle className="w-4 h-4 text-red-500 mr-2" />
-            <span className="text-red-700 text-sm">{error}</span>
+          <div className="flex items-start">
+            <XCircle className="w-4 h-4 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <span className="text-red-700 text-sm font-medium">
+                오류 발생
+              </span>
+              <p className="text-red-600 text-xs mt-1 break-words">{error}</p>
+              <button
+                onClick={() => {
+                  alert(
+                    `상세 오류 정보:\n\n${error}\n\n이 정보를 개발자에게 전달해주세요.`
+                  );
+                }}
+                className="text-red-500 text-xs underline mt-2"
+              >
+                상세 정보 보기
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -406,6 +469,20 @@ export default function BiometricAuth({
                 <span className="mr-2">🧪</span>
               )}
               테스트 등록 (디버깅용)
+            </Button>
+
+            <Button
+              onClick={testAPI}
+              disabled={isLoading}
+              variant="outline"
+              className="w-full text-purple-600 border-purple-300 hover:bg-purple-50"
+            >
+              {isLoading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2" />
+              ) : (
+                <span className="mr-2">🔍</span>
+              )}
+              API 연결 테스트
             </Button>
           </>
         ) : (

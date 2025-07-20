@@ -4,6 +4,8 @@ import { randomBytes } from "crypto";
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("🔍 생체 인식 등록 준비 시작");
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -11,26 +13,54 @@ export async function POST(request: NextRequest) {
 
     // Authorization 헤더에서 토큰 확인
     const authHeader = request.headers.get("authorization");
+    console.log("🔍 Authorization 헤더:", authHeader ? "존재" : "없음");
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.error("❌ 인증 헤더 오류");
       return NextResponse.json({ error: "인증이 필요합니다" }, { status: 401 });
     }
 
     const token = authHeader.split(" ")[1];
+    console.log("🔍 토큰 길이:", token.length);
+
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      console.error("인증 오류:", authError);
-      return NextResponse.json({ error: "인증이 필요합니다" }, { status: 401 });
+
+    if (authError) {
+      console.error("❌ 인증 오류:", authError);
+      return NextResponse.json(
+        {
+          error: "인증이 필요합니다",
+          details: authError.message,
+        },
+        { status: 401 }
+      );
     }
+
+    if (!user) {
+      console.error("❌ 사용자 정보 없음");
+      return NextResponse.json(
+        { error: "사용자 정보를 찾을 수 없습니다" },
+        { status: 401 }
+      );
+    }
+
+    console.log("✅ 인증 성공:", user.email);
 
     const body = await request.json();
     const { userId, email } = body;
 
+    console.log("🔍 요청 데이터:", { userId, email });
+
     if (!userId || !email) {
+      console.error("❌ 필수 데이터 누락");
       return NextResponse.json(
-        { error: "필수 데이터가 누락되었습니다" },
+        {
+          error: "필수 데이터가 누락되었습니다",
+          received: { userId, email },
+        },
         { status: 400 }
       );
     }
@@ -46,7 +76,7 @@ export async function POST(request: NextRequest) {
       userId: Array.from(userIdBytes),
       rp: {
         name: "그룹웨어",
-        id: window.location.hostname || "localhost",
+        id: "localhost", // 고정값으로 변경
       },
       user: {
         id: Array.from(userIdBytes),
@@ -63,12 +93,15 @@ export async function POST(request: NextRequest) {
       timeout: 60000,
     };
 
-    console.log("생체 인식 등록 옵션 생성 완료:", { userId, email });
+    console.log("✅ 생체 인식 등록 옵션 생성 완료:", { userId, email });
     return NextResponse.json(options);
   } catch (error) {
-    console.error("생체 인식 등록 준비 오류:", error);
+    console.error("❌ 생체 인식 등록 준비 오류:", error);
     return NextResponse.json(
-      { error: "서버 오류가 발생했습니다" },
+      {
+        error: "서버 오류가 발생했습니다",
+        details: error instanceof Error ? error.message : "알 수 없는 오류",
+      },
       { status: 500 }
     );
   }
