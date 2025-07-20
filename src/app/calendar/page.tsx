@@ -267,64 +267,79 @@ export default function CalendarPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      {/* Header - 모바일 반응형 */}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.history.back()}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                뒤로가기
-              </Button>
-              <Link href="/">
-                <Button variant="outline" size="sm">
-                  <Home className="w-4 h-4 mr-2" />
-                  홈으로
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-4 gap-4">
+            {/* 제목과 네비게이션 */}
+            <div className="flex items-center justify-between sm:justify-start gap-4">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.history.back()}
+                >
+                  <ArrowLeft className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">뒤로가기</span>
                 </Button>
-              </Link>
+                <Link href="/">
+                  <Button variant="outline" size="sm">
+                    <Home className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">홈으로</span>
+                  </Button>
+                </Link>
+              </div>
               <div className="flex items-center">
-                <CalendarDays className="w-8 h-8 text-blue-600 mr-3" />
-                <h1 className="text-2xl font-bold text-gray-900">캘린더</h1>
+                <CalendarDays className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 mr-2 sm:mr-3" />
+                <h1 className="text-lg sm:text-2xl font-bold text-gray-900">
+                  캘린더
+                </h1>
               </div>
             </div>
-            <Button onClick={() => setShowEventModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />새 일정
+
+            {/* 새 일정 버튼 */}
+            <Button
+              onClick={() => setShowEventModal(true)}
+              className="w-full sm:w-auto"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">새 일정</span>
+              <span className="sm:hidden">일정 추가</span>
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 상단 탭 UI */}
-        <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
+      {/* Main Content - 모바일 반응형 */}
+      <main className="max-w-7xl mx-auto px-0 sm:px-6 lg:px-8 py-0 sm:py-8">
+        {/* 상단 탭 UI - 모바일에서 더 작게 */}
+        <div className="flex gap-1 mb-4 sm:mb-6 bg-gray-100 p-1 rounded-xl w-full sm:w-fit mx-4 sm:mx-0">
           <button
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+            className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-all duration-200 text-sm sm:text-base ${
               activeTab === "calendar"
                 ? "bg-white text-blue-600 shadow-md"
                 : "text-gray-600 hover:text-gray-800 hover:bg-white/50"
             }`}
             onClick={() => setActiveTab("calendar")}
           >
-            <span className="text-lg">📅</span>
-            캘린더
+            <span className="text-base sm:text-lg">📅</span>
+            <span className="hidden sm:inline">캘린더</span>
+            <span className="sm:hidden">캘린더</span>
           </button>
           <button
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+            className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-all duration-200 text-sm sm:text-base ${
               activeTab === "ledger"
                 ? "bg-white text-blue-600 shadow-md"
                 : "text-gray-600 hover:text-gray-800 hover:bg-white/50"
             }`}
             onClick={() => setActiveTab("ledger")}
           >
-            <span className="text-lg">💰</span>
-            가계부
+            <span className="text-base sm:text-lg">💰</span>
+            <span className="hidden sm:inline">가계부</span>
+            <span className="sm:hidden">가계부</span>
           </button>
         </div>
+
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
@@ -342,7 +357,7 @@ export default function CalendarPage() {
         ) : (
           <>
             {activeTab === "calendar" && (
-              <div className="flex gap-6">
+              <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
                 <div className="flex-1">
                   <Calendar
                     events={events}
@@ -365,11 +380,17 @@ export default function CalendarPage() {
                     }}
                   />
                 </div>
-                <WorkSummarySidebar refreshTrigger={refreshTrigger} />
+                {/* 사이드바 - 데스크톱에서는 사이드에, 모바일에서는 하단에 */}
+                <div className="lg:hidden px-4 sm:px-0">
+                  <WorkSummarySidebar refreshTrigger={refreshTrigger} />
+                </div>
+                <div className="hidden lg:block">
+                  <WorkSummarySidebar refreshTrigger={refreshTrigger} />
+                </div>
               </div>
             )}
             {activeTab === "ledger" && (
-              <div className="flex gap-6">
+              <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
                 <div className="flex-1">
                   <Calendar
                     events={[]}
@@ -394,121 +415,253 @@ export default function CalendarPage() {
                     isLedgerMode={true}
                   />
                 </div>
-                <aside className="w-80 bg-white rounded-xl shadow p-6 flex flex-col gap-6 border">
-                  {/* 연도/월 선택 */}
-                  <div>
-                    <h4 className="font-bold mb-3">기간 선택</h4>
-                    <div className="flex gap-2 mb-3">
-                      <select
-                        value={ledgerYear}
-                        onChange={(e) => setLedgerYear(Number(e.target.value))}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
-                      >
-                        {years.map((year) => (
-                          <option key={year} value={year}>
-                            {year}년
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={ledgerMonth}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setLedgerMonth(
-                            value === "전체" ? "전체" : Number(value)
-                          );
-                        }}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
-                      >
-                        {months.map((month) => (
-                          <option key={month} value={month}>
-                            {month === "전체" ? "전체" : `${month}월`}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <select
-                      value={ledgerCategory}
-                      onChange={(e) => setLedgerCategory(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    >
-                      <option value="">전체 카테고리</option>
-                      {categories.map((category) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* 합계 정보 */}
-                  <div>
-                    <h4 className="font-bold mb-3">합계</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                        <span className="text-green-700 font-medium">수입</span>
-                        <span className="text-green-700 font-bold">
-                          {totalIncome.toLocaleString()}원
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
-                        <span className="text-red-700 font-medium">지출</span>
-                        <span className="text-red-700 font-bold">
-                          {totalExpense.toLocaleString()}원
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border-t">
-                        <span className="text-blue-700 font-medium">
-                          순수익
-                        </span>
-                        <span
-                          className={`font-bold ${
-                            totalIncome - totalExpense >= 0
-                              ? "text-blue-700"
-                              : "text-red-700"
-                          }`}
+                {/* 가계부 사이드바 - 모바일에서 하단에 표시 */}
+                <div className="lg:hidden px-4 sm:px-0">
+                  <aside className="bg-white rounded-xl shadow p-4 sm:p-6 flex flex-col gap-4 sm:gap-6 border">
+                    {/* 연도/월 선택 */}
+                    <div>
+                      <h4 className="font-bold mb-3">기간 선택</h4>
+                      <div className="flex gap-2 mb-3">
+                        <select
+                          value={ledgerYear}
+                          onChange={(e) =>
+                            setLedgerYear(Number(e.target.value))
+                          }
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
                         >
-                          {(totalIncome - totalExpense).toLocaleString()}원
-                        </span>
+                          {years.map((year) => (
+                            <option key={year} value={year}>
+                              {year}년
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          value={ledgerMonth}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setLedgerMonth(
+                              value === "전체" ? "전체" : Number(value)
+                            );
+                          }}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        >
+                          {months.map((month) => (
+                            <option key={month} value={month}>
+                              {month === "전체" ? "전체" : `${month}월`}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <select
+                        value={ledgerCategory}
+                        onChange={(e) => setLedgerCategory(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      >
+                        <option value="">전체 카테고리</option>
+                        {categories.map((category) => (
+                          <option key={category} value={category}>
+                            {category}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* 합계 정보 */}
+                    <div>
+                      <h4 className="font-bold mb-3">합계</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                          <span className="text-green-700 font-medium">
+                            수입
+                          </span>
+                          <span className="text-green-700 font-bold">
+                            {totalIncome.toLocaleString()}원
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                          <span className="text-red-700 font-medium">지출</span>
+                          <span className="text-red-700 font-bold">
+                            {totalExpense.toLocaleString()}원
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border-t">
+                          <span className="text-blue-700 font-medium">
+                            순수익
+                          </span>
+                          <span
+                            className={`font-bold ${
+                              totalIncome - totalExpense >= 0
+                                ? "text-blue-700"
+                                : "text-red-700"
+                            }`}
+                          >
+                            {(totalIncome - totalExpense).toLocaleString()}원
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* 카테고리별 합계 */}
-                  <div>
-                    <h4 className="font-bold mb-2">카테고리별 합계</h4>
-                    {Object.keys(categorySums).length > 0 ? (
-                      <table className="w-full text-xs border">
-                        <thead>
-                          <tr className="bg-gray-50">
-                            <th className="p-1 border">카테고리</th>
-                            <th className="p-1 border text-green-700">수입</th>
-                            <th className="p-1 border text-red-700">지출</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Object.entries(categorySums).map(([cat, sum]) => (
-                            <tr key={cat}>
-                              <td className="p-1 border font-bold">{cat}</td>
-                              <td className="p-1 border text-green-700">
-                                +{sum.income.toLocaleString()}원
-                              </td>
-                              <td className="p-1 border text-red-700">
-                                -{sum.expense.toLocaleString()}원
-                              </td>
+                    {/* 카테고리별 합계 */}
+                    <div>
+                      <h4 className="font-bold mb-2">카테고리별 합계</h4>
+                      {Object.keys(categorySums).length > 0 ? (
+                        <table className="w-full text-xs border">
+                          <thead>
+                            <tr className="bg-gray-50">
+                              <th className="p-1 border">카테고리</th>
+                              <th className="p-1 border text-green-700">
+                                수입
+                              </th>
+                              <th className="p-1 border text-red-700">지출</th>
                             </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(categorySums).map(([cat, sum]) => (
+                              <tr key={cat}>
+                                <td className="p-1 border font-bold">{cat}</td>
+                                <td className="p-1 border text-green-700">
+                                  +{sum.income.toLocaleString()}원
+                                </td>
+                                <td className="p-1 border text-red-700">
+                                  -{sum.expense.toLocaleString()}원
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <div className="text-center py-4 text-gray-500 text-sm">
+                          {filteredTransactions.length === 0
+                            ? "이번 달 거래 내역이 없습니다."
+                            : "카테고리가 있는 거래가 없습니다."}
+                        </div>
+                      )}
+                    </div>
+                  </aside>
+                </div>
+                <div className="hidden lg:block">
+                  <aside className="w-80 bg-white rounded-xl shadow p-6 flex flex-col gap-6 border">
+                    {/* 연도/월 선택 */}
+                    <div>
+                      <h4 className="font-bold mb-3">기간 선택</h4>
+                      <div className="flex gap-2 mb-3">
+                        <select
+                          value={ledgerYear}
+                          onChange={(e) =>
+                            setLedgerYear(Number(e.target.value))
+                          }
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        >
+                          {years.map((year) => (
+                            <option key={year} value={year}>
+                              {year}년
+                            </option>
                           ))}
-                        </tbody>
-                      </table>
-                    ) : (
-                      <div className="text-center py-4 text-gray-500 text-sm">
-                        {filteredTransactions.length === 0
-                          ? "이번 달 거래 내역이 없습니다."
-                          : "카테고리가 있는 거래가 없습니다."}
+                        </select>
+                        <select
+                          value={ledgerMonth}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setLedgerMonth(
+                              value === "전체" ? "전체" : Number(value)
+                            );
+                          }}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        >
+                          {months.map((month) => (
+                            <option key={month} value={month}>
+                              {month === "전체" ? "전체" : `${month}월`}
+                            </option>
+                          ))}
+                        </select>
                       </div>
-                    )}
-                  </div>
-                </aside>
+                      <select
+                        value={ledgerCategory}
+                        onChange={(e) => setLedgerCategory(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      >
+                        <option value="">전체 카테고리</option>
+                        {categories.map((category) => (
+                          <option key={category} value={category}>
+                            {category}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* 합계 정보 */}
+                    <div>
+                      <h4 className="font-bold mb-3">합계</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                          <span className="text-green-700 font-medium">
+                            수입
+                          </span>
+                          <span className="text-green-700 font-bold">
+                            {totalIncome.toLocaleString()}원
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                          <span className="text-red-700 font-medium">지출</span>
+                          <span className="text-red-700 font-bold">
+                            {totalExpense.toLocaleString()}원
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border-t">
+                          <span className="text-blue-700 font-medium">
+                            순수익
+                          </span>
+                          <span
+                            className={`font-bold ${
+                              totalIncome - totalExpense >= 0
+                                ? "text-blue-700"
+                                : "text-red-700"
+                            }`}
+                          >
+                            {(totalIncome - totalExpense).toLocaleString()}원
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 카테고리별 합계 */}
+                    <div>
+                      <h4 className="font-bold mb-2">카테고리별 합계</h4>
+                      {Object.keys(categorySums).length > 0 ? (
+                        <table className="w-full text-xs border">
+                          <thead>
+                            <tr className="bg-gray-50">
+                              <th className="p-1 border">카테고리</th>
+                              <th className="p-1 border text-green-700">
+                                수입
+                              </th>
+                              <th className="p-1 border text-red-700">지출</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(categorySums).map(([cat, sum]) => (
+                              <tr key={cat}>
+                                <td className="p-1 border font-bold">{cat}</td>
+                                <td className="p-1 border text-green-700">
+                                  +{sum.income.toLocaleString()}원
+                                </td>
+                                <td className="p-1 border text-red-700">
+                                  -{sum.expense.toLocaleString()}원
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <div className="text-center py-4 text-gray-500 text-sm">
+                          {filteredTransactions.length === 0
+                            ? "이번 달 거래 내역이 없습니다."
+                            : "카테고리가 있는 거래가 없습니다."}
+                        </div>
+                      )}
+                    </div>
+                  </aside>
+                </div>
               </div>
             )}
           </>

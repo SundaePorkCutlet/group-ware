@@ -182,23 +182,25 @@ export default function Calendar({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow border border-gray-200">
-      {/* Calendar Header */}
-      <div className="flex items-center justify-between p-6 border-b border-gray-200">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-semibold text-gray-900">
+    <div className="bg-white rounded-lg shadow border border-gray-200 sm:rounded-lg">
+      {/* Calendar Header - 모바일 반응형 */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-6 border-b border-gray-200 gap-4">
+        {/* 제목과 오늘 버튼 */}
+        <div className="flex items-center justify-between sm:justify-start gap-4">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
             {currentDate.getFullYear()}년 {MONTHS[currentDate.getMonth()]}
           </h2>
           <Button variant="outline" size="sm" onClick={goToToday}>
             <CalendarIcon className="w-4 h-4 mr-2" />
-            오늘
+            <span className="hidden sm:inline">오늘</span>
           </Button>
         </div>
 
-        {/* Calendar Toggle Controls */}
-        <div className="flex items-center gap-4">
+        {/* 네비게이션과 토글 - 모바일에서 세로 배치 */}
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          {/* Calendar Toggle Controls - 모바일에서 숨김 */}
           {!isLedgerMode && (
-            <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-3">
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -229,6 +231,7 @@ export default function Calendar({
             </div>
           )}
 
+          {/* 네비게이션 버튼 */}
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -248,14 +251,14 @@ export default function Calendar({
         </div>
       </div>
 
-      {/* Calendar Grid */}
-      <div className="p-6">
-        {/* Day Headers */}
-        <div className="grid grid-cols-7 gap-1 mb-4">
+      {/* Calendar Grid - 모바일에서 전체 화면 */}
+      <div className="p-1 sm:p-6">
+        {/* Day Headers - 모바일에서 더 작게 */}
+        <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-2 sm:mb-4">
           {DAYS.map((day, index) => (
             <div
               key={day}
-              className={`p-2 text-center text-sm font-medium ${
+              className={`p-1 sm:p-2 text-center text-xs sm:text-sm font-medium ${
                 index === 0
                   ? "text-red-600"
                   : index === 6
@@ -268,8 +271,8 @@ export default function Calendar({
           ))}
         </div>
 
-        {/* Calendar Days */}
-        <div className="grid grid-cols-7 gap-1">
+        {/* Calendar Days - 모바일에서 높이 조정 */}
+        <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
           {days.map((date) => {
             const dayEvents = getEventsForDate(date);
             const dayTransactions = getTransactionsForDate(date);
@@ -282,7 +285,7 @@ export default function Calendar({
             return (
               <div
                 key={date.toISOString()}
-                className={`min-h-32 p-2 border border-gray-100 rounded cursor-pointer hover:bg-gray-50 transition-colors ${
+                className={`min-h-20 sm:min-h-32 p-1 sm:p-2 border border-gray-100 rounded cursor-pointer hover:bg-gray-50 transition-colors ${
                   !isCurrentMonthDate ? "text-gray-400 bg-gray-50" : ""
                 } ${isTodayDate ? "bg-blue-50 border-blue-200" : ""} ${
                   isWeekend && isCurrentMonthDate ? "bg-green-50" : ""
@@ -290,7 +293,7 @@ export default function Calendar({
                 onClick={() => onDateClick(date)}
               >
                 <div
-                  className={`text-sm font-medium mb-1 ${
+                  className={`text-xs sm:text-sm font-medium mb-1 ${
                     isTodayDate
                       ? "text-blue-600"
                       : isWeekend && isCurrentMonthDate
@@ -301,8 +304,8 @@ export default function Calendar({
                   {date.getDate()}
                 </div>
 
-                {/* Events for this day */}
-                <div className="space-y-1">
+                {/* Events for this day - 모바일에서 간소화 */}
+                <div className="space-y-0.5 sm:space-y-1">
                   {(() => {
                     // 출퇴근 이벤트를 따로 분리하고 합치기
                     const attendanceEvents = dayEvents.filter(
@@ -348,7 +351,7 @@ export default function Calendar({
                         originalEvents: attendanceEvents,
                       };
 
-                      // 제목 설정 - 더 간단하게
+                      // 제목 설정 - 모바일에서 더 간단하게
                       if (clockIn && clockOut) {
                         combinedEvent.title = `${formatTime(
                           clockIn.start_date
@@ -369,13 +372,13 @@ export default function Calendar({
                     // 일반 이벤트들 추가
                     displayEvents.push(...otherEvents);
 
-                    // 표시할 이벤트 개수 제한
-                    const maxEvents = 3;
+                    // 모바일에서는 이벤트 개수 제한
+                    const maxEvents = window.innerWidth < 640 ? 2 : 3;
                     return displayEvents.slice(0, maxEvents).map((event) => {
                       // 출퇴근 이벤트는 특별한 디자인으로 표시
                       if ((event as any).isAttendanceCombined) {
                         return (
-                          <div key={event.id} className="mb-1">
+                          <div key={event.id} className="mb-0.5 sm:mb-1">
                             <div
                               className="text-xs bg-indigo-100 text-indigo-800 px-1 py-0.5 rounded flex items-center justify-between cursor-pointer hover:bg-indigo-200 transition-colors"
                               onClick={(e) => {
@@ -384,18 +387,22 @@ export default function Calendar({
                               }}
                               title="출퇴근 기록"
                             >
-                              <span>🏢</span>
-                              <span className="font-mono">{event.title}</span>
+                              <span className="hidden sm:inline">🏢</span>
+                              <span className="font-mono text-xs truncate">
+                                {window.innerWidth < 640
+                                  ? event.title.replace(/출근|퇴근/g, "")
+                                  : event.title}
+                              </span>
                             </div>
                           </div>
                         );
                       }
 
-                      // 일반 이벤트는 기존 디자인 유지
+                      // 일반 이벤트는 기존 디자인 유지하되 모바일 최적화
                       return (
                         <div
                           key={event.id}
-                          className={`text-xs p-1 rounded text-white cursor-pointer hover:opacity-80 transition-opacity ${
+                          className={`text-xs p-0.5 sm:p-1 rounded text-white cursor-pointer hover:opacity-80 transition-opacity ${
                             EVENT_TYPE_COLORS[
                               event.event_type as keyof typeof EVENT_TYPE_COLORS
                             ]
@@ -408,11 +415,15 @@ export default function Calendar({
                             event.location ? ` @ ${event.location}` : ""
                           }`}
                         >
-                          <div className="truncate">
+                          <div className="truncate text-xs">
                             {event.is_all_day
-                              ? event.title
+                              ? window.innerWidth < 640
+                                ? event.title.substring(0, 4)
+                                : event.title
                               : `${formatTime(event.start_date)} ${
-                                  event.title
+                                  window.innerWidth < 640
+                                    ? event.title.substring(0, 3)
+                                    : event.title
                                 }`}
                           </div>
                         </div>
@@ -434,7 +445,7 @@ export default function Calendar({
                     const displayCount =
                       (attendanceEvents.length > 0 ? 1 : 0) +
                       otherEvents.length;
-                    const maxEvents = 3;
+                    const maxEvents = window.innerWidth < 640 ? 2 : 3;
 
                     if (displayCount > maxEvents) {
                       return (
@@ -454,25 +465,28 @@ export default function Calendar({
                   })()}
                 </div>
 
-                {dayTransactions.map((tx) => (
-                  <div
-                    key={tx.id}
-                    className={`text-xs mt-1 px-2 py-1 rounded ${
-                      tx.type === "income"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
-                    } cursor-pointer`}
-                    title={tx.memo}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onTransactionClick && onTransactionClick(tx, date);
-                    }}
-                  >
-                    {tx.type === "income" ? "+" : "-"}
-                    {tx.amount.toLocaleString()}원{" "}
-                    {tx.category && `(${tx.category})`}
-                  </div>
-                ))}
+                {/* 거래 내역 - 가계부 모드에서는 모바일에서도 표시 */}
+                <div className={isLedgerMode ? "block" : "hidden sm:block"}>
+                  {dayTransactions.map((tx) => (
+                    <div
+                      key={tx.id}
+                      className={`text-xs mt-1 px-2 py-1 rounded ${
+                        tx.type === "income"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      } cursor-pointer`}
+                      title={tx.memo}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTransactionClick && onTransactionClick(tx, date);
+                      }}
+                    >
+                      {tx.type === "income" ? "+" : "-"}
+                      {tx.amount.toLocaleString()}원{" "}
+                      {tx.category && `(${tx.category})`}
+                    </div>
+                  ))}
+                </div>
               </div>
             );
           })}
