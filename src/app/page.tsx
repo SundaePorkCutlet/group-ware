@@ -12,6 +12,7 @@ import {
   Settings,
   BarChart3,
   UserPlus,
+  Smartphone,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
@@ -185,17 +186,22 @@ export default function HomePage() {
             </Button>
           </div>
 
-          {/* 새 기능 추가 */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg border-2 border-dashed border-blue-300 p-6 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                <span className="text-white text-2xl">+</span>
-              </div>
-              <h3 className="text-lg font-semibold text-blue-900 mb-2">
-                새 기능
+          {/* 위젯 안내 */}
+          <div className="bg-gradient-to-br from-purple-50 to-pink-100 rounded-lg border border-purple-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center mb-4">
+              <Smartphone className="w-8 h-8 text-purple-600 mr-3" />
+              <h3 className="text-xl font-semibold text-gray-900">
+                홈 화면 위젯
               </h3>
-              <p className="text-blue-700 text-sm">곧 추가될 예정입니다</p>
             </div>
+            <p className="text-gray-600 mb-4">
+              출근/퇴근을 홈 화면에서 빠르게 기록하세요
+            </p>
+            <Link href="/widget-guide">
+              <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white">
+                위젯 설정하기
+              </Button>
+            </Link>
           </div>
         </div>
 

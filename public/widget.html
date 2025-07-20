@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>출근/퇴근 위젯</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 8px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .widget-container {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        height: 100%;
+      }
+
+      .time-display {
+        font-size: 14px;
+        font-weight: 600;
+        text-align: center;
+        opacity: 0.9;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 6px;
+      }
+
+      .attendance-btn {
+        flex: 1;
+        padding: 8px 4px;
+        border: none;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        backdrop-filter: blur(10px);
+      }
+
+      .attendance-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-1px);
+      }
+
+      .attendance-btn:active {
+        transform: translateY(0);
+      }
+
+      .status-indicator {
+        font-size: 10px;
+        text-align: center;
+        opacity: 0.8;
+        margin-top: 4px;
+      }
+
+      .success {
+        color: #4ade80;
+      }
+
+      .error {
+        color: #f87171;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="widget-container">
+      <div class="time-display" id="currentTime">--:--</div>
+      <div class="button-group">
+        <button class="attendance-btn" id="clockInBtn" onclick="clockIn()">
+          🌅 출근
+        </button>
+        <button class="attendance-btn" id="clockOutBtn" onclick="clockOut()">
+          🌆 퇴근
+        </button>
+      </div>
+      <div class="status-indicator" id="status"></div>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+      // Supabase 클라이언트 초기화
+      const supabase = window.supabase.createClient(
+        "https://your-project.supabase.co",
+        "your-anon-key"
+      );
+
+      // 현재 시간 표시
+      function updateTime() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString("ko-KR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        });
+        document.getElementById("currentTime").textContent = timeString;
+      }
+
+      // 1초마다 시간 업데이트
+      updateTime();
+      setInterval(updateTime, 1000);
+
+      // 출근 기록
+      async function clockIn() {
+        const btn = document.getElementById("clockInBtn");
+        const status = document.getElementById("status");
+
+        btn.disabled = true;
+        btn.textContent = "⏳ 처리중...";
+        status.textContent = "출근 기록 중...";
+        status.className = "status-indicator";
+
+        try {
+          // Supabase 토큰 가져오기
+          const supabase = window.supabase;
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+
+          if (!session) {
+            throw new Error("로그인이 필요합니다");
+          }
+
+          const response = await fetch("/api/attendance", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              type: "clock_in",
+              timestamp: new Date().toISOString(),
+            }),
+          });
+
+          if (response.ok) {
+            status.textContent = "출근 완료!";
+            status.className = "status-indicator success";
+            btn.textContent = "✅ 출근";
+          } else {
+            throw new Error("출근 기록 실패");
+          }
+        } catch (error) {
+          status.textContent = "오류 발생";
+          status.className = "status-indicator error";
+          btn.textContent = "❌ 출근";
+        }
+
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.textContent = "🌅 출근";
+          status.textContent = "";
+        }, 3000);
+      }
+
+      // 퇴근 기록
+      async function clockOut() {
+        const btn = document.getElementById("clockOutBtn");
+        const status = document.getElementById("status");
+
+        btn.disabled = true;
+        btn.textContent = "⏳ 처리중...";
+        status.textContent = "퇴근 기록 중...";
+        status.className = "status-indicator";
+
+        try {
+          // Supabase 토큰 가져오기
+          const supabase = window.supabase;
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+
+          if (!session) {
+            throw new Error("로그인이 필요합니다");
+          }
+
+          const response = await fetch("/api/attendance", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              type: "clock_out",
+              timestamp: new Date().toISOString(),
+            }),
+          });
+
+          if (response.ok) {
+            status.textContent = "퇴근 완료!";
+            status.className = "status-indicator success";
+            btn.textContent = "✅ 퇴근";
+          } else {
+            throw new Error("퇴근 기록 실패");
+          }
+        } catch (error) {
+          status.textContent = "오류 발생";
+          status.className = "status-indicator error";
+          btn.textContent = "❌ 퇴근";
+        }
+
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.textContent = "🌆 퇴근";
+          status.textContent = "";
+        }, 3000);
+      }
+
+      // 위젯 크기에 따라 UI 조정
+      function adjustWidgetSize() {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        if (width < 200) {
+          // 작은 위젯
+          document.querySelector(".widget-container").style.gap = "4px";
+          document.querySelector(".time-display").style.fontSize = "12px";
+          document.querySelectorAll(".attendance-btn").forEach((btn) => {
+            btn.style.fontSize = "10px";
+            btn.style.padding = "6px 2px";
+          });
+        }
+      }
+
+      // 위젯 로드 시 크기 조정
+      adjustWidgetSize();
+      window.addEventListener("resize", adjustWidgetSize);
+    </script>
+  </body>
+</html>
