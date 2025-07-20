@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
       error: authError,
     } = await supabase.auth.getUser(token);
     if (authError || !user) {
+      console.error("인증 오류:", authError);
       return NextResponse.json({ error: "인증이 필요합니다" }, { status: 401 });
     }
 
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
       userId: Array.from(userIdBytes),
       rp: {
         name: "그룹웨어",
-        id: process.env.NEXT_PUBLIC_SITE_URL || "localhost",
+        id: window.location.hostname || "localhost",
       },
       user: {
         id: Array.from(userIdBytes),
@@ -62,6 +63,7 @@ export async function POST(request: NextRequest) {
       timeout: 60000,
     };
 
+    console.log("생체 인식 등록 옵션 생성 완료:", { userId, email });
     return NextResponse.json(options);
   } catch (error) {
     console.error("생체 인식 등록 준비 오류:", error);
@@ -91,6 +93,7 @@ export async function PUT(request: NextRequest) {
       error: authError,
     } = await supabase.auth.getUser(token);
     if (authError || !user) {
+      console.error("인증 오류:", authError);
       return NextResponse.json({ error: "인증이 필요합니다" }, { status: 401 });
     }
 
@@ -103,6 +106,11 @@ export async function PUT(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    console.log("생체 인식 자격 증명 저장 시작:", {
+      userId,
+      credentialId: credential.id,
+    });
 
     // 생체 인식 자격 증명을 데이터베이스에 저장
     const { error: insertError } = await supabase
@@ -119,12 +127,32 @@ export async function PUT(request: NextRequest) {
 
     if (insertError) {
       console.error("생체 인식 자격 증명 저장 오류:", insertError);
+
+      // 테이블이 없는 경우
+      if (
+        insertError.message.includes(
+          'relation "biometric_credentials" does not exist'
+        )
+      ) {
+        return NextResponse.json(
+          {
+            error: "생체 인식 테이블이 없습니다",
+            message: "관리자에게 문의하세요.",
+          },
+          { status: 500 }
+        );
+      }
+
       return NextResponse.json(
-        { error: "생체 인식 등록에 실패했습니다" },
+        {
+          error: "생체 인식 등록에 실패했습니다",
+          details: insertError.message,
+        },
         { status: 500 }
       );
     }
 
+    console.log("생체 인식 자격 증명 저장 완료");
     return NextResponse.json({
       success: true,
       message: "생체 인식이 등록되었습니다",

@@ -61,6 +61,8 @@ export default function BiometricAuth({
     setError(null);
 
     try {
+      console.log("생체 인식 등록 시작...");
+
       // 서버에서 등록 옵션 가져오기
       const response = await fetch("/api/biometric/register", {
         method: "POST",
@@ -79,10 +81,12 @@ export default function BiometricAuth({
       });
 
       if (!response.ok) {
-        throw new Error("생체 인식 등록 준비 실패");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "생체 인식 등록 준비 실패");
       }
 
       const options = await response.json();
+      console.log("등록 옵션 받음:", options);
 
       // 생체 인식 등록
       const credential = await navigator.credentials.create({
@@ -112,6 +116,8 @@ export default function BiometricAuth({
         throw new Error("생체 인식 등록이 취소되었습니다");
       }
 
+      console.log("생체 인식 자격 증명 생성 완료:", credential);
+
       // 서버에 등록 완료 알림
       const registerResponse = await fetch("/api/biometric/register", {
         method: "PUT",
@@ -130,8 +136,12 @@ export default function BiometricAuth({
       });
 
       if (!registerResponse.ok) {
-        throw new Error("생체 인식 등록 완료 실패");
+        const errorData = await registerResponse.json();
+        throw new Error(errorData.error || "생체 인식 등록 완료 실패");
       }
+
+      const result = await registerResponse.json();
+      console.log("등록 완료:", result);
 
       localStorage.setItem("biometric-registered", "true");
       setIsRegistered(true);
@@ -140,6 +150,91 @@ export default function BiometricAuth({
       console.error("생체 인식 등록 실패:", error);
       setError(
         error instanceof Error ? error.message : "생체 인식 등록에 실패했습니다"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 테스트용 등록 (실제 생체 인식 없이)
+  const testRegister = async () => {
+    if (!user) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      console.log("테스트 등록 시작...");
+
+      // 서버에서 등록 옵션 가져오기
+      const response = await fetch("/api/biometric/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${
+            (
+              await supabase.auth.getSession()
+            ).data.session?.access_token
+          }`,
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          email: user.email,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "생체 인식 등록 준비 실패");
+      }
+
+      const options = await response.json();
+      console.log("등록 옵션 받음:", options);
+
+      // 테스트용 가짜 자격 증명
+      const testCredential = {
+        id: "test-credential-id-" + Date.now(),
+        type: "public-key",
+        response: {
+          publicKey: new ArrayBuffer(32),
+          signCount: 0,
+        },
+      };
+
+      console.log("테스트 자격 증명 생성:", testCredential);
+
+      // 서버에 등록 완료 알림
+      const registerResponse = await fetch("/api/biometric/register", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${
+            (
+              await supabase.auth.getSession()
+            ).data.session?.access_token
+          }`,
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          credential: testCredential,
+        }),
+      });
+
+      if (!registerResponse.ok) {
+        const errorData = await registerResponse.json();
+        throw new Error(errorData.error || "생체 인식 등록 완료 실패");
+      }
+
+      const result = await registerResponse.json();
+      console.log("테스트 등록 완료:", result);
+
+      localStorage.setItem("biometric-registered", "true");
+      setIsRegistered(true);
+      onSuccess?.();
+    } catch (error) {
+      console.error("테스트 등록 실패:", error);
+      setError(
+        error instanceof Error ? error.message : "테스트 등록에 실패했습니다"
       );
     } finally {
       setIsLoading(false);
@@ -285,18 +380,34 @@ export default function BiometricAuth({
 
       <div className="space-y-3">
         {!isRegistered ? (
-          <Button
-            onClick={registerBiometric}
-            disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            {isLoading ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-            ) : (
-              <Shield className="w-4 h-4 mr-2" />
-            )}
-            생체 인식 등록하기
-          </Button>
+          <>
+            <Button
+              onClick={registerBiometric}
+              disabled={isLoading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {isLoading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+              ) : (
+                <Shield className="w-4 h-4 mr-2" />
+              )}
+              생체 인식 등록하기
+            </Button>
+
+            <Button
+              onClick={testRegister}
+              disabled={isLoading}
+              variant="outline"
+              className="w-full text-orange-600 border-orange-300 hover:bg-orange-50"
+            >
+              {isLoading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600 mr-2" />
+              ) : (
+                <span className="mr-2">🧪</span>
+              )}
+              테스트 등록 (디버깅용)
+            </Button>
+          </>
         ) : (
           <>
             <Button
