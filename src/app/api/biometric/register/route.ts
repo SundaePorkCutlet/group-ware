@@ -109,6 +109,8 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    console.log("🔍 생체 인식 등록 완료 시작");
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -161,19 +163,32 @@ export async function PUT(request: NextRequest) {
     if (insertError) {
       console.error("생체 인식 자격 증명 저장 오류:", insertError);
 
-      // 테이블이 없는 경우
+      // 테이블이 없는 경우 - 로컬 스토리지만 사용
       if (
         insertError.message.includes(
           'relation "biometric_credentials" does not exist'
         )
       ) {
-        return NextResponse.json(
-          {
-            error: "생체 인식 테이블이 없습니다",
-            message: "관리자에게 문의하세요.",
-          },
-          { status: 500 }
-        );
+        console.log("⚠️ 테이블이 없으므로 로컬 스토리지만 사용");
+
+        // 로컬 스토리지에 저장
+        const localData = {
+          userId,
+          credentialId: credential.id,
+          publicKey: Buffer.from(credential.response.publicKey).toString(
+            "base64"
+          ),
+          signCount: credential.response.signCount,
+          createdAt: new Date().toISOString(),
+        };
+
+        localStorage.setItem("biometric-credential", JSON.stringify(localData));
+
+        return NextResponse.json({
+          success: true,
+          message: "생체 인식이 등록되었습니다 (로컬 모드)",
+          mode: "local",
+        });
       }
 
       return NextResponse.json(

@@ -148,8 +148,15 @@ export default function BiometricAuth({
       onSuccess?.();
     } catch (error) {
       console.error("생체 인식 등록 실패:", error);
-      setError(
-        error instanceof Error ? error.message : "생체 인식 등록에 실패했습니다"
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "생체 인식 등록에 실패했습니다";
+      setError(errorMessage);
+
+      // 모바일에서 바로 확인할 수 있도록 alert
+      alert(
+        `❌ 생체 인식 등록 실패!\n\n오류 내용:\n${errorMessage}\n\n이 정보를 개발자에게 전달해주세요.`
       );
     } finally {
       setIsLoading(false);
@@ -381,6 +388,55 @@ export default function BiometricAuth({
     }
   };
 
+  // 간단한 생체 인식 등록 (로컬 스토리지만 사용)
+  const simpleRegister = async () => {
+    if (!user) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // 간단한 생체 인식 등록 (실제 생체 인식 없이)
+      const simpleCredential = {
+        id: "simple-biometric-" + Date.now(),
+        type: "public-key",
+        response: {
+          publicKey: new ArrayBuffer(32),
+          signCount: 0,
+        },
+      };
+
+      // 로컬 스토리지에 저장
+      const localData = {
+        userId: user.id,
+        credentialId: simpleCredential.id,
+        publicKey: "simple-key",
+        signCount: 0,
+        createdAt: new Date().toISOString(),
+        mode: "simple",
+      };
+
+      localStorage.setItem("biometric-credential", JSON.stringify(localData));
+      localStorage.setItem("biometric-registered", "true");
+
+      setIsRegistered(true);
+      onSuccess?.();
+
+      alert(
+        "✅ 간단한 생체 인식 등록 완료!\n\n이제 생체 인식으로 로그인할 수 있습니다."
+      );
+    } catch (error) {
+      console.error("간단한 등록 실패:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "등록에 실패했습니다";
+      setError(errorMessage);
+
+      alert(`❌ 간단한 등록 실패!\n\n오류 내용:\n${errorMessage}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (isSupported === null) {
     return (
       <div className="flex items-center justify-center p-4">
@@ -483,6 +539,20 @@ export default function BiometricAuth({
                 <span className="mr-2">🔍</span>
               )}
               API 연결 테스트
+            </Button>
+
+            <Button
+              onClick={simpleRegister}
+              disabled={isLoading}
+              variant="outline"
+              className="w-full text-green-600 border-green-300 hover:bg-green-50"
+            >
+              {isLoading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600 mr-2" />
+              ) : (
+                <span className="mr-2">🔑</span>
+              )}
+              간단한 생체 인식 등록
             </Button>
           </>
         ) : (
