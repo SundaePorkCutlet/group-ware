@@ -208,9 +208,18 @@ export async function PUT(request: NextRequest) {
       message: "생체 인식이 등록되었습니다",
     });
   } catch (error) {
-    console.error("생체 인식 등록 완료 오류:", error);
+    console.error("❌ 생체 인식 등록 완료 오류:", {
+      message: error instanceof Error ? error.message : "알 수 없는 오류",
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : "UnknownError",
+    });
+
     return NextResponse.json(
-      { error: "서버 오류가 발생했습니다" },
+      {
+        error: "서버 오류가 발생했습니다",
+        details: error instanceof Error ? error.message : "알 수 없는 오류",
+        timestamp: new Date().toISOString(),
+      },
       { status: 500 }
     );
   }

@@ -144,12 +144,25 @@ export default function BiometricAuth({
       });
 
       if (!registerResponse.ok) {
-        const errorData = await registerResponse.json();
-        throw new Error(
-          `저장 오류 (${registerResponse.status}): ${
-            errorData.error || "알 수 없는 오류"
-          }`
-        );
+        const responseText = await registerResponse.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(responseText);
+        } catch {
+          errorData = { error: responseText };
+        }
+
+        let errorMessage = `저장 오류 (${registerResponse.status}): ${
+          errorData.error || "알 수 없는 오류"
+        }`;
+        if (errorData.details) {
+          errorMessage += `\n\n상세 정보: ${errorData.details}`;
+        }
+        if (errorData.code) {
+          errorMessage += `\n\n오류 코드: ${errorData.code}`;
+        }
+
+        throw new Error(errorMessage);
       }
 
       const result = await registerResponse.json();
@@ -524,6 +537,18 @@ export default function BiometricAuth({
                 <span className="mr-2">🔍</span>
               )}
               API 연결 테스트
+            </Button>
+
+            <Button
+              onClick={() => {
+                localStorage.clear();
+                window.location.reload();
+              }}
+              variant="outline"
+              className="w-full text-red-600 border-red-300 hover:bg-red-50"
+            >
+              <span className="mr-2">🔄</span>
+              캐시 클리어 & 새로고침
             </Button>
           </>
         ) : (
