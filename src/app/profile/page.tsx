@@ -4,7 +4,16 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { User, Mail, Building2, Shield, ArrowLeft, Home } from "lucide-react";
+import {
+  User,
+  Mail,
+  Building2,
+  Shield,
+  ArrowLeft,
+  Home,
+  Fingerprint,
+} from "lucide-react";
+import BiometricAuth from "@/components/auth/BiometricAuth";
 
 interface Profile {
   id: string;
@@ -297,6 +306,24 @@ export default function ProfilePage() {
                     </span>
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* 생체 인식 설정 */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900">보안 설정</h3>
+
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center mb-3">
+                  <Fingerprint className="w-5 h-5 text-blue-600 mr-2" />
+                  <span className="font-medium text-blue-900">
+                    생체 인식 로그인
+                  </span>
+                </div>
+                <p className="text-blue-700 text-sm mb-4">
+                  Face ID, 지문 인식, 또는 PIN으로 빠르게 로그인할 수 있습니다.
+                </p>
+                <BiometricAuth />
               </div>
             </div>
 

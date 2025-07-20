@@ -204,20 +204,21 @@ export default function AttendanceCard() {
   const isWorking = todayAttendance.clockIn && !todayAttendance.clockOut;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl shadow-lg border-2 border-blue-200 p-8 col-span-full md:col-span-2 lg:col-span-1">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center">
-          <Clock className="w-5 h-5 text-gray-600 mr-2" />
+          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+            <Clock className="w-6 h-6 text-white" />
+          </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">출퇴근 관리</h2>
-            {company && <p className="text-sm text-gray-500">{company.name}</p>}
+            <h2 className="text-xl font-bold text-gray-900">출퇴근 관리</h2>
+            {company && <p className="text-sm text-gray-600">{company.name}</p>}
           </div>
         </div>
-        <div className="text-sm text-gray-500">
+        <div className="text-lg font-mono text-blue-600 bg-white px-3 py-1 rounded-lg shadow-sm">
           {currentTime.toLocaleTimeString("ko-KR", {
             hour: "2-digit",
             minute: "2-digit",
-            second: "2-digit",
             hour12: false,
           })}
         </div>
@@ -225,25 +226,30 @@ export default function AttendanceCard() {
 
       {/* 오늘의 출퇴근 현황 */}
       {hasWorkedToday && (
-        <div className="bg-gray-50 rounded-lg p-4 mb-6">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 mb-6 border border-blue-100">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+            <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
             오늘의 기록
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {todayAttendance.clockIn && (
-              <div className="flex items-center text-sm">
-                <LogIn className="w-4 h-4 text-green-600 mr-2" />
-                <span className="text-gray-600 mr-2">출근:</span>
-                <span className="font-mono text-gray-900">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center">
+                  <LogIn className="w-4 h-4 text-green-600 mr-2" />
+                  <span className="text-gray-600">출근:</span>
+                </div>
+                <span className="font-mono font-semibold text-gray-900">
                   {formatTime(todayAttendance.clockIn)}
                 </span>
               </div>
             )}
             {todayAttendance.clockOut && (
-              <div className="flex items-center text-sm">
-                <LogOut className="w-4 h-4 text-blue-600 mr-2" />
-                <span className="text-gray-600 mr-2">퇴근:</span>
-                <span className="font-mono text-gray-900">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center">
+                  <LogOut className="w-4 h-4 text-blue-600 mr-2" />
+                  <span className="text-gray-600">퇴근:</span>
+                </div>
+                <span className="font-mono font-semibold text-gray-900">
                   {formatTime(todayAttendance.clockOut)}
                 </span>
               </div>
@@ -253,49 +259,49 @@ export default function AttendanceCard() {
       )}
 
       {/* 출퇴근 버튼 */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {!todayAttendance.clockIn ? (
           <Button
             onClick={handleClockIn}
             disabled={isLoading}
-            className="w-full bg-green-600 hover:bg-green-700 text-white"
+            className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-lg font-semibold py-4 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200"
             size="lg"
           >
             {isLoading ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3" />
             ) : (
-              <LogIn className="w-4 h-4 mr-2" />
+              <LogIn className="w-6 h-6 mr-3" />
             )}
-            출근하기
+            🌅 출근하기
           </Button>
         ) : !todayAttendance.clockOut ? (
           <Button
             onClick={handleClockOut}
             disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-lg font-semibold py-4 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200"
             size="lg"
           >
             {isLoading ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3" />
             ) : (
-              <LogOut className="w-4 h-4 mr-2" />
+              <LogOut className="w-6 h-6 mr-3" />
             )}
-            퇴근하기
+            🌆 퇴근하기
           </Button>
         ) : (
-          <div className="text-center py-4">
-            <Home className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-gray-600 text-sm">오늘 업무가 완료되었습니다</p>
-            <p className="text-gray-500 text-xs mt-1">수고하셨어요!</p>
+          <div className="text-center py-6 bg-white/80 backdrop-blur-sm rounded-xl border border-green-200">
+            <Home className="w-12 h-12 text-green-500 mx-auto mb-3" />
+            <p className="text-gray-800 font-semibold mb-1">오늘 업무 완료!</p>
+            <p className="text-gray-600 text-sm">수고하셨어요! 🎉</p>
           </div>
         )}
       </div>
 
       {/* 현재 상태 표시 */}
       {isWorking && (
-        <div className="mt-4 text-center">
-          <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse" />
+        <div className="mt-6 text-center">
+          <div className="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-green-100 text-green-800 border border-green-200">
+            <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse" />
             근무 중
           </div>
         </div>
