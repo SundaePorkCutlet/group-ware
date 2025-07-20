@@ -142,71 +142,33 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // 인증된 사용자의 ID를 사용 (클라이언트에서 보낸 userId 대신)
+    // 인증된 사용자의 ID를 사용
     const authenticatedUserId = user.id;
 
     console.log("🔍 생체 인식 자격 증명 저장 시작:", {
-      originalUserId: userId,
       authenticatedUserId: authenticatedUserId,
-      authUid: user.id,
-      authUidType: typeof user.id,
-      authenticatedUserIdType: typeof authenticatedUserId,
       credentialId: credential.id,
     });
-
-    // 삽입할 데이터 준비
-    const insertData = {
-      user_id: authenticatedUserId, // 인증된 사용자 ID 사용
-      credential_id: credential.id,
-      public_key: Buffer.from(credential.response.publicKey).toString("base64"),
-      sign_count: credential.response.signCount,
-      created_at: new Date().toISOString(),
-    };
-
-    console.log("🔍 삽입할 데이터:", insertData);
 
     // 생체 인식 자격 증명을 데이터베이스에 저장
     const { error: insertError } = await supabase
       .from("biometric_credentials")
-      .insert(insertData);
-
-    if (insertError) {
-      console.error("❌ 생체 인식 자격 증명 저장 오류:", {
-        message: insertError.message,
-        details: insertError.details,
-        hint: insertError.hint,
-        code: insertError.code,
+      .insert({
+        user_id: authenticatedUserId,
+        credential_id: credential.id,
+        public_key: Buffer.from(credential.response.publicKey).toString(
+          "base64"
+        ),
+        sign_count: credential.response.signCount,
+        created_at: new Date().toISOString(),
       });
 
-      // 테이블이 없는 경우 - 클라이언트에서 로컬 스토리지 사용하도록 안내
-      if (
-        insertError.message.includes(
-          'relation "biometric_credentials" does not exist'
-        )
-      ) {
-        console.log("⚠️ 테이블이 없으므로 클라이언트에서 로컬 스토리지 사용");
-
-        return NextResponse.json({
-          success: true,
-          message: "생체 인식이 등록되었습니다 (로컬 모드)",
-          mode: "local",
-          credentialData: {
-            userId: authenticatedUserId, // 인증된 사용자 ID 사용
-            credentialId: credential.id,
-            publicKey: Buffer.from(credential.response.publicKey).toString(
-              "base64"
-            ),
-            signCount: credential.response.signCount,
-            createdAt: new Date().toISOString(),
-          },
-        });
-      }
-
+    if (insertError) {
+      console.error("❌ 생체 인식 자격 증명 저장 오류:", insertError);
       return NextResponse.json(
         {
           error: "생체 인식 등록에 실패했습니다",
           details: insertError.message,
-          code: insertError.code,
         },
         { status: 500 }
       );
