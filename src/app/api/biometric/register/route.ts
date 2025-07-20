@@ -148,6 +148,9 @@ export async function PUT(request: NextRequest) {
     console.log("🔍 생체 인식 자격 증명 저장 시작:", {
       originalUserId: userId,
       authenticatedUserId: authenticatedUserId,
+      authUid: user.id,
+      authUidType: typeof user.id,
+      authenticatedUserIdType: typeof authenticatedUserId,
       credentialId: credential.id,
     });
 
