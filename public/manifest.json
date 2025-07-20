@@ -18,20 +18,23 @@
   "categories": ["business", "productivity"],
   "lang": "ko",
   "dir": "ltr",
+  "scope": "/",
+  "prefer_related_applications": false,
   "widgets": [
     {
       "name": "출근/퇴근 위젯",
       "short_name": "출퇴근",
-      "description": "빠른 출근/퇴근 기록",
+      "description": "빠른 출근/퇴근 기록 위젯",
       "start_url": "/widget.html",
       "display": "standalone",
       "background_color": "#667eea",
       "theme_color": "#667eea",
       "icons": [
         {
-          "src": "/icon.svg",
+          "src": "/widget-icon.svg",
           "sizes": "any",
-          "type": "image/svg+xml"
+          "type": "image/svg+xml",
+          "purpose": "any"
         }
       ],
       "screenshots": [
@@ -41,7 +44,10 @@
           "type": "image/png",
           "form_factor": "narrow"
         }
-      ]
+      ],
+      "categories": ["business", "productivity"],
+      "lang": "ko",
+      "dir": "ltr"
     }
   ]
 }

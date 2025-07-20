@@ -1,17 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function WidgetGuidePage() {
   const [isIOS, setIsIOS] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
+  const [isSafari, setIsSafari] = useState(false);
 
   // 사용자 기기 확인
-  if (typeof window !== "undefined") {
+  useEffect(() => {
     const userAgent = navigator.userAgent;
     setIsIOS(/iPad|iPhone|iPod/.test(userAgent));
     setIsAndroid(/Android/.test(userAgent));
-  }
+    setIsSafari(/Safari/.test(userAgent) && !/Chrome/.test(userAgent));
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -22,6 +24,22 @@ export default function WidgetGuidePage() {
           </h1>
 
           <div className="space-y-6">
+            {/* 중요 안내 */}
+            <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
+              <h2 className="text-xl font-semibold text-yellow-800 mb-3">
+                ⚠️ 중요 안내
+              </h2>
+              <p className="text-gray-700 mb-3">
+                PWA 위젯은 아직 실험적 기능입니다. 일부 기기에서는 위젯이
+                표시되지 않을 수 있습니다.
+              </p>
+              <div className="space-y-2 text-sm text-gray-600">
+                <p>• iOS 16.1+에서 제한적으로 지원</p>
+                <p>• Android에서는 Chrome OS나 일부 런처에서만 지원</p>
+                <p>• Safari에서 더 안정적으로 작동</p>
+              </div>
+            </div>
+
             {/* iOS 위젯 설정 */}
             {isIOS && (
               <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
@@ -29,13 +47,26 @@ export default function WidgetGuidePage() {
                   🍎 iOS 위젯 설정
                 </h2>
                 <ol className="space-y-2 text-gray-700">
-                  <li>1. 홈 화면에서 빈 공간을 길게 누릅니다</li>
-                  <li>2. 좌측 상단의 '+' 버튼을 탭합니다</li>
-                  <li>3. "그룹웨어" 또는 "출퇴근"을 검색합니다</li>
-                  <li>4. 원하는 크기의 위젯을 선택합니다</li>
-                  <li>5. "위젯 추가"를 탭합니다</li>
-                  <li>6. 홈 화면에 배치합니다</li>
+                  <li>1. Safari에서 그룹웨어 앱을 열어주세요</li>
+                  <li>
+                    2. 홈 화면에 앱을 설치해주세요 (공유 버튼 → "홈 화면에
+                    추가")
+                  </li>
+                  <li>3. 홈 화면에서 빈 공간을 길게 누릅니다</li>
+                  <li>4. 좌측 상단의 '+' 버튼을 탭합니다</li>
+                  <li>5. "그룹웨어" 또는 "출퇴근"을 검색합니다</li>
+                  <li>6. 원하는 크기의 위젯을 선택합니다</li>
+                  <li>7. "위젯 추가"를 탭합니다</li>
+                  <li>8. 홈 화면에 배치합니다</li>
                 </ol>
+                {!isSafari && (
+                  <div className="mt-3 p-3 bg-blue-100 rounded-lg">
+                    <p className="text-blue-800 text-sm">
+                      💡 Safari에서 더 안정적으로 작동합니다. Safari로
+                      시도해보세요.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -46,12 +77,20 @@ export default function WidgetGuidePage() {
                   🤖 Android 위젯 설정
                 </h2>
                 <ol className="space-y-2 text-gray-700">
-                  <li>1. 홈 화면에서 빈 공간을 길게 누릅니다</li>
-                  <li>2. "위젯" 또는 "위젯 추가"를 선택합니다</li>
-                  <li>3. "그룹웨어" 앱을 찾습니다</li>
-                  <li>4. 원하는 크기의 위젯을 선택합니다</li>
-                  <li>5. 홈 화면에 배치합니다</li>
+                  <li>1. Chrome에서 그룹웨어 앱을 열어주세요</li>
+                  <li>2. 홈 화면에 앱을 설치해주세요</li>
+                  <li>3. 홈 화면에서 빈 공간을 길게 누릅니다</li>
+                  <li>4. "위젯" 또는 "위젯 추가"를 선택합니다</li>
+                  <li>5. "그룹웨어" 앱을 찾습니다</li>
+                  <li>6. 원하는 크기의 위젯을 선택합니다</li>
+                  <li>7. 홈 화면에 배치합니다</li>
                 </ol>
+                <div className="mt-3 p-3 bg-green-100 rounded-lg">
+                  <p className="text-green-800 text-sm">
+                    ⚠️ Android에서는 제한적으로 지원됩니다. Chrome OS에서 더
+                    안정적으로 작동합니다.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -70,14 +109,15 @@ export default function WidgetGuidePage() {
                       iOS (iPhone/iPad)
                     </h3>
                     <p className="text-sm text-gray-600">
-                      홈 화면 길게 누르기 → '+' 버튼 → "그룹웨어" 검색 → 위젯
-                      추가
+                      Safari에서 앱 설치 → 홈 화면 길게 누르기 → '+' 버튼 →
+                      "그룹웨어" 검색 → 위젯 추가
                     </p>
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-800">Android</h3>
                     <p className="text-sm text-gray-600">
-                      홈 화면 길게 누르기 → "위젯" → "그룹웨어" 검색 → 위젯 추가
+                      Chrome에서 앱 설치 → 홈 화면 길게 누르기 → "위젯" →
+                      "그룹웨어" 검색 → 위젯 추가
                     </p>
                   </div>
                 </div>
@@ -126,6 +166,17 @@ export default function WidgetGuidePage() {
                     </p>
                   </div>
                 </div>
+                <div className="flex items-center space-x-3">
+                  <span className="text-2xl">📱</span>
+                  <div>
+                    <h3 className="font-semibold text-gray-800">
+                      반응형 디자인
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      위젯 크기에 따라 자동 조정
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -141,7 +192,39 @@ export default function WidgetGuidePage() {
                 <li>
                   • 기록된 출퇴근 시간은 앱의 캘린더에서 확인할 수 있습니다
                 </li>
+                <li>
+                  • PWA 위젯은 실험적 기능이므로 일부 기기에서 작동하지 않을 수
+                  있습니다
+                </li>
               </ul>
+            </div>
+
+            {/* 대안 제안 */}
+            <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+              <h2 className="text-xl font-semibold text-blue-800 mb-3">
+                🔄 대안 방법
+              </h2>
+              <p className="text-gray-700 mb-3">
+                위젯이 작동하지 않는 경우 다음 방법을 시도해보세요:
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <span className="text-blue-600">1.</span>
+                  <span className="text-gray-700">
+                    홈 화면에 PWA 앱을 설치하고 빠른 액세스
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-blue-600">2.</span>
+                  <span className="text-gray-700">
+                    브라우저 북마크에 추가하여 빠른 접근
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-blue-600">3.</span>
+                  <span className="text-gray-700">앱 내 알림 기능 활용</span>
+                </div>
+              </div>
             </div>
 
             {/* 위젯 미리보기 */}
