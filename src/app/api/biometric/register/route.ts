@@ -151,18 +151,21 @@ export async function PUT(request: NextRequest) {
       credentialId: credential.id,
     });
 
+    // 삽입할 데이터 준비
+    const insertData = {
+      user_id: authenticatedUserId, // 인증된 사용자 ID 사용
+      credential_id: credential.id,
+      public_key: Buffer.from(credential.response.publicKey).toString("base64"),
+      sign_count: credential.response.signCount,
+      created_at: new Date().toISOString(),
+    };
+
+    console.log("🔍 삽입할 데이터:", insertData);
+
     // 생체 인식 자격 증명을 데이터베이스에 저장
     const { error: insertError } = await supabase
       .from("biometric_credentials")
-      .insert({
-        user_id: authenticatedUserId, // 인증된 사용자 ID 사용
-        credential_id: credential.id,
-        public_key: Buffer.from(credential.response.publicKey).toString(
-          "base64"
-        ),
-        sign_count: credential.response.signCount,
-        created_at: new Date().toISOString(),
-      });
+      .insert(insertData);
 
     if (insertError) {
       console.error("❌ 생체 인식 자격 증명 저장 오류:", {
