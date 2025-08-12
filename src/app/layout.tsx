@@ -19,8 +19,7 @@ export const metadata: Metadata = {
   description: "팀 협업을 위한 통합 그룹웨어 솔루션",
   manifest: "/app-manifest.json",
   themeColor: "#3b82f6",
-  viewport:
-    "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
+  viewport: "width=device-width, initial-scale=1",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
