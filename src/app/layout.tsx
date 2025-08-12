@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "GroupWare - 효율적인 협업 플랫폼",
   description: "팀 협업을 위한 통합 그룹웨어 솔루션",
-  manifest: "/manifest.json",
+  manifest: "/app-manifest.json",
   themeColor: "#3b82f6",
   viewport:
     "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
