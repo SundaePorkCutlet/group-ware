@@ -9,6 +9,7 @@ import {
   Clock,
   MinusCircle,
 } from "lucide-react";
+import { getHolidayCountInWeek } from "@/lib/holidays";
 
 interface AttendanceEvent {
   id: string;
@@ -225,7 +226,7 @@ export default function WorkSummarySidebar({
     const weekDays = ["일", "월", "화", "수", "목", "금", "토"];
     const startIdx = weekDays.indexOf(workStart);
     const endIdx = weekDays.indexOf(workEnd);
-    const workDays = ((endIdx - startIdx + 7) % 7) + 1;
+    let workDays = ((endIdx - startIdx + 7) % 7) + 1;
 
     // 이번 주 시작/끝 계산
     const now = new Date();
@@ -235,6 +236,10 @@ export default function WorkSummarySidebar({
     weekStart.setHours(0, 0, 0, 0);
     weekEnd.setDate(weekStart.getDate() + ((endIdx - startIdx + 7) % 7));
     weekEnd.setHours(23, 59, 59, 999);
+    
+    // 이번 주 공휴일 개수 계산해서 근무일에서 제외
+    const holidayCount = getHolidayCountInWeek(weekStart, weekEnd);
+    workDays = Math.max(workDays - holidayCount, 1); // 최소 1일은 유지
 
     // events 테이블에서 계산 (날짜별로 출근/퇴근 매칭)
     const eventsByDate: {
@@ -438,7 +443,7 @@ export default function WorkSummarySidebar({
     const weekDaysWorked = ["일", "월", "화", "수", "목", "금", "토"];
     const startIdx2 = weekDaysWorked.indexOf(workStart);
     const endIdx2 = weekDaysWorked.indexOf(workEnd);
-    const workDays = ((endIdx2 - startIdx2 + 7) % 7) + 1;
+    let workDays = ((endIdx2 - startIdx2 + 7) % 7) + 1;
 
     // 이번 주 시작/끝 계산
     let weekStart = new Date(now);
@@ -447,6 +452,10 @@ export default function WorkSummarySidebar({
     weekStart.setHours(0, 0, 0, 0);
     weekEnd.setDate(weekStart.getDate() + ((endIdx2 - startIdx2 + 7) % 7));
     weekEnd.setHours(23, 59, 59, 999);
+    
+    // 이번 주 공휴일 개수 계산해서 근무일에서 제외
+    const holidayCount2 = getHolidayCountInWeek(weekStart, weekEnd);
+    workDays = Math.max(workDays - holidayCount2, 1); // 최소 1일은 유지
 
     // 이번 주 다른 날들 근무시간 계산
     let otherDaysWorked = 0;

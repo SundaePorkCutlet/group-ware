@@ -810,7 +810,11 @@ export default function CalendarPage() {
         date={transactionDate!}
         transaction={editTransaction}
         onSave={async (transactionData) => {
-          const dateStr = transactionDate!.toISOString().slice(0, 10);
+          // 로컬 시간으로 날짜 문자열 생성 (타임존 문제 해결)
+          const year = transactionDate!.getFullYear();
+          const month = String(transactionDate!.getMonth() + 1).padStart(2, '0');
+          const day = String(transactionDate!.getDate()).padStart(2, '0');
+          const dateStr = `${year}-${month}-${day}`;
           if (editTransaction) {
             const { error } = await supabase
               .from("transactions")

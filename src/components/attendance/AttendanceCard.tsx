@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase";
 import { Clock, LogIn, LogOut, Coffee, Home, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
+import { useRouter } from "next/navigation";
 
 interface TodayAttendance {
   clockIn?: string;
@@ -24,6 +25,7 @@ export default function AttendanceCard() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [company, setCompany] = useState<Company | null>(null);
   const supabase = createClient();
+  const router = useRouter();
 
   // 현재 시간 업데이트
   useEffect(() => {
@@ -191,7 +193,11 @@ export default function AttendanceCard() {
           <Coffee className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-600 mb-2">회사에 가입하시면</p>
           <p className="text-gray-600 mb-4">출퇴근 기록을 관리할 수 있어요</p>
-          <Button variant="outline" size="sm">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => router.push('/team')}
+          >
             <UserPlus className="w-4 h-4 mr-2" />
             회사 가입하기
           </Button>

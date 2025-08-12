@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Event } from "@/app/calendar/page";
+import { isHolidayByDateString, getHolidayInfo } from "@/lib/holidays";
 
 interface CalendarProps {
   events: Event[];
@@ -281,6 +282,17 @@ export default function Calendar({
             const isTodayDate = isToday(date);
             const dayOfWeek = date.getDay(); // 0=일요일, 6=토요일
             const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+            
+            // 공휴일 체크 - 로컬 시간으로 날짜 문자열 생성
+            const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+            const isHoliday = isHolidayByDateString(dateString);
+            const holidayInfo = isHoliday ? getHolidayInfo(date) : null;
+            
+            // 공휴일 로그 (필요시 주석 해제)
+            // if (isHoliday) {
+            //   console.log(`공휴일 ${dateString}: holidayInfo=`, holidayInfo);
+            //   console.log(`공휴일 이름: ${holidayInfo?.name}`);
+            // }
 
             return (
               <div
@@ -292,16 +304,31 @@ export default function Calendar({
                 }`}
                 onClick={() => onDateClick(date)}
               >
-                <div
-                  className={`text-xs sm:text-sm font-medium mb-1 ${
-                    isTodayDate
-                      ? "text-blue-600"
-                      : isWeekend && isCurrentMonthDate
-                      ? "text-green-600"
-                      : ""
-                  }`}
-                >
-                  {date.getDate()}
+                <div className="text-xs sm:text-sm font-medium mb-1">
+                  <div
+                    className={`${
+                      isTodayDate
+                        ? "text-blue-600 font-bold"
+                        : isWeekend && isCurrentMonthDate
+                        ? "text-green-600"
+                        : "text-gray-900"
+                    }`}
+                    style={
+                      isHoliday && isCurrentMonthDate
+                        ? { color: '#DC2626', fontWeight: 'bold' }
+                        : {}
+                    }
+                  >
+                    {date.getDate()}
+                  </div>
+                  {isHoliday && isCurrentMonthDate && (
+                    <div 
+                      className="text-xs font-bold truncate mt-0.5 bg-red-50 px-1 py-0.5 rounded border border-red-200"
+                      style={{ color: '#DC2626' }}
+                    >
+                      {holidayInfo?.name || '공휴일'}
+                    </div>
+                  )}
                 </div>
 
                 {/* Events for this day - 모바일에서 간소화 */}

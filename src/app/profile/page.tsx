@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   Home,
   Fingerprint,
+  Key,
 } from "lucide-react";
 import BiometricAuth from "@/components/auth/BiometricAuth";
 
@@ -36,6 +37,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [fullName, setFullName] = useState("");
+  const [sendingPasswordReset, setSendingPasswordReset] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -109,6 +111,42 @@ export default function ProfilePage() {
       alert("프로필 업데이트 중 오류가 발생했습니다.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const sendPasswordResetEmail = async () => {
+    if (!profile?.email) return;
+
+    const confirmed = confirm(
+      `비밀번호 재설정 이메일을 보내시겠습니까?\n\n` +
+        `이메일 주소: ${profile.email}\n\n` +
+        `• 이메일로 비밀번호 재설정 링크가 전송됩니다\n` +
+        `• 링크를 클릭하여 새 비밀번호를 설정할 수 있습니다\n` +
+        `• 스팸 메일함도 확인해주세요`
+    );
+
+    if (!confirmed) return;
+
+    setSendingPasswordReset(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(profile.email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+
+      if (error) {
+        alert(`비밀번호 재설정 이메일 전송 실패: ${error.message}`);
+      } else {
+        alert(
+          `비밀번호 재설정 이메일이 ${profile.email}로 전송되었습니다.\n\n` +
+            `이메일을 확인하고 링크를 클릭하여 새 비밀번호를 설정해주세요.`
+        );
+      }
+    } catch (error) {
+      console.error("비밀번호 재설정 오류:", error);
+      alert("비밀번호 재설정 이메일 전송 중 오류가 발생했습니다.");
+    } finally {
+      setSendingPasswordReset(false);
     }
   };
 
@@ -309,10 +347,37 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* 생체 인식 설정 */}
+            {/* 보안 설정 */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900">보안 설정</h3>
 
+              {/* 비밀번호 변경 */}
+              <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center">
+                    <Key className="w-5 h-5 text-yellow-600 mr-2" />
+                    <span className="font-medium text-yellow-900">
+                      비밀번호 변경
+                    </span>
+                  </div>
+                  <Button
+                    onClick={sendPasswordResetEmail}
+                    disabled={sendingPasswordReset}
+                    variant="outline"
+                    size="sm"
+                    className="text-yellow-700 border-yellow-300 hover:bg-yellow-100"
+                  >
+                    {sendingPasswordReset ? "전송 중..." : "이메일로 변경"}
+                  </Button>
+                </div>
+                <p className="text-yellow-700 text-sm">
+                  보안을 위해 이메일 인증을 통해 비밀번호를 변경할 수 있습니다.
+                  <br />
+                  <span className="font-medium">{profile?.email}</span>로 비밀번호 재설정 링크가 전송됩니다.
+                </p>
+              </div>
+
+              {/* 생체 인식 설정 */}
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <div className="flex items-center mb-3">
                   <Fingerprint className="w-5 h-5 text-blue-600 mr-2" />

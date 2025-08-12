@@ -64,7 +64,7 @@ export default function TransactionModal({
         memo: "",
       });
     }
-  }, [transaction]);
+  }, [transaction, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
